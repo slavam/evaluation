@@ -1,0 +1,13 @@
+# coding: utf-8
+%h1 Показатели 
+
+.content
+  %table.data
+    %tr
+      %th Название
+    - for f in @factor_names
+      %tr
+        %td= link_to f.name, :action => 'edit', :id => f
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'		

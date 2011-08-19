@@ -1,0 +1,61 @@
+# coding: utf-8
+!!! strict
+%html
+  %head
+    %title VBR-Bank
+    %meta{ 'http-equiv' => 'Content-Type', :content => 'text/html; charset=UTF-8' }
+    = stylesheet_link_tag 'application'
+    = javascript_include_tag 'http://code.jquery.com/jquery-1.5.js', 'rails', 'application', 'highcharts'
+    = csrf_meta_tag
+
+
+  %body
+  #header
+    %h2 ВСЕУКРАИНСКИЙ БАНК РАЗВИТИЯ
+  #search
+    
+    #navigation
+      %br
+      #tabs
+        %ul
+          - if not true
+            = render :partial => 'layouts/menuItem', :collection => [ |
+              ['Login', new_user_session_url]                        |
+            ] |
+            -
+          - else
+            %div{'style' => "float: left;"}
+              = render :partial => 'layouts/menuItem', :collection => [ |
+                ['Персонал',  workers_path], |
+                ['Подразделения',  subdivisions_path], |
+                ['Бизнесы', businesses_path], |
+                ['Шаблоны',  directions_path], | 
+                ['Показатели', factor_descriptions_path], |
+                ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'], | 
+                ['Расчет KPI',  :controller => 'performances', :action => 'get_calc_params'] |
+              ] |
+            - 
+            -##div{'style' => "float: left;margin-left: 30px"}
+              -#= render :partial => 'layouts/menuItem', :collection => [ |
+              -#['Услуги', new_user_session_url],            |
+                -#['УТиСЗН', (current_user and (current_user.login == 'admin') ? {:controller => "cities", :action => "index_active_cities"} : new_user_session_url)]            |
+                -#['Domains', '#'], |
+                -#['Google apps', '#'], |
+                -#['Other', '#'] |
+                
+                -#['Показатели', factors_path], |
+                -#['Блоки', blocks_path], |
+                -#['Шаблоны',  directions_path] |
+                -#['Результаты',  performances_path] |
+                
+              -#] |
+            -#-
+            -
+
+    #main
+      - flash.each do |key, msg|
+        = content_tag :div, msg, :class => "flash_#{key}"
+      %div{'style' => "clear: both;"}
+      &nbsp;
+      = yield
+      %div{'style' => "clear: both;"}

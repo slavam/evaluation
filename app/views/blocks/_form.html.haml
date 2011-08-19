@@ -1,0 +1,18 @@
+%h1
+  = submit
+  блок показателей
+.content
+  - form_for @block do |form|
+    %table.card
+      %tr
+        %th Полное название
+        %td= form.text_field :name
+      %tr
+        %th Сокращенное название
+        %td= form.text_field :short_name
+      -#%tr
+        -#%th Вес
+        -#%td= form.text_field :weight
+    %br
+  
+    = submit_tag submit

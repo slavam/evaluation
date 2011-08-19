@@ -1,0 +1,225 @@
+html, body {
+  margin: 0;
+  background-color: #f1fff1;
+  font-family: Calibri, Verdana, sans-serif; }
+
+#navigation {
+  background-color: !mainbg;
+  color: white;
+  margin: 0;
+  padding: 0;
+  clear: both; }
+  #navigation h1 {
+    font-size: 17pt;
+    font-weight: normal;
+    margin: 0;
+    color: #ffcc00;
+    padding: 15px 0 15px 30px; }
+
+#header {
+  height:150px;
+  font-size: 17pt;
+  color: #01544a;
+  text-align:center;
+  background: #f1fff1 url(../images/logo.jpg) no-repeat;
+}
+#footer {
+  color: #110000;
+  border-top: solid 5px #f1fff1;
+  background: #f1fff1 url(../images/slogan.gif) no-repeat;
+  font-size: 12px;
+  padding: 10px 0 50px 0;
+  text-align: center;
+  clear: both; }
+
+#search {
+  color: #110000;
+  border-left: solid 5px #f1fff1;
+  border-right: solid 5px #f1fff1;
+  font-size: 12px;
+  padding: 10px 0 50px 0;
+  text-align: left;
+  clear: both; }
+
+#tabs {
+  margin: 0 57px 0 30px;
+  height: 25px;
+  padding: 0; }
+  #tabs li {
+    margin: 0;
+    padding: 0;
+    display: inline;
+    list-style: none;
+    border: none; }
+  #tabs ul {
+    margin: 0;
+    padding: 0; }
+    #tabs ul a:link, #tabs ul a:visited {
+      float: left;
+      padding: 4px 8px 6px 8px;
+      margin: 0; }
+    #tabs ul a:link.current, #tabs ul a:visited.current {
+      background-color: #e5e5e5;
+      border-bottom: solid 1px #e5e5e5;
+      color: #222;
+      text-decoration: none;
+      margin: 0; }
+  #tabs a:link, #tabs a:visited {
+    background-color: #01544a;
+    color: white;
+    border: solid 1px #004400;
+    text-decoration: none; }
+  #tabs a:hover {
+    color: #ffcc00;
+    background-color: #660000;
+    border-bottom: solid 1px #660000; }
+
+#main {
+  padding: 0 30px 30px 30px;
+  background-color: #e5e5e5;
+  clear: both; }
+  #main h1 {
+    background-color: #edf3fe;
+    font-size: 14pt;
+    font-weight: bold;
+    padding: 5px 15px 5px 5px;
+    margin: 0; }
+  #main .content {
+    background-color: white;
+    padding: 20px; }
+
+table.data {
+  border-collapse: collapse;
+  border-spacing: 0; }
+  table.data td {
+    background-color: #eeeeee;
+    font-size: 11pt;
+    text-align: left;
+    font-weight: normal;
+    padding: 3px 20px 3px 3px; }
+  table.data th {
+    background-color: #dddddd;
+    font-size: 11pt;
+    text-align: left;
+    font-weight: normal;
+    padding: 3px 20px 3px 3px; }
+
+.odd {
+  background-color: #eeeeee;
+}
+
+.card td, .card th {
+  text-align: left; }
+
+a:link, a:visited {
+  text-decoration: none; }
+
+a:hover {
+  text-decoration: underline; }
+
+.fieldWithErrors {
+  color: red; }
+
+.flash_error {
+  background-color: red; }
+
+.flash_notice {
+  background-color: green; }
+
+.test {
+  background-color: fuchsia; }
+
+.audit_time {
+  color: gray; }
+
+table.members {
+  border-spacing: 0px;
+  border-collapse: collapse;
+}
+
+table.members td {
+  border: 1px solid white;
+}
+
+table.members tr {
+  height: 25px;
+}
+
+td.role {
+  font-weight: bold; }
+
+table.members td:first-child {
+  padding-left: 5px;
+  width: 200px; 
+  text-align: left; }
+
+table.members td {
+  width: 90px; 
+  text-align: center; }
+
+table.members {
+  font-size: 12px; }
+
+table.members tr:last-child td:last-child {
+  padding: 3px 0px 3px 0px;
+  text-align: center;
+  background-color: #e5e5e5; }
+
+table.members tr:last-child input {
+  width: 125px;
+}
+
+.attachments h4 {
+  margin-bottom: 0px;
+}
+
+.attachmentItem {
+  float: left;
+  padding: 10px 15px;
+  color: #909090;
+  height: 75px;
+  font-size: 11px;
+}
+
+.attachmentItem .thumbnail {
+  float: left;
+  width: 75px;
+  height: 75px;
+  display: table;
+  text-align: center;
+}
+
+.attachmentItem .thumbnailCell {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.attachmentItem .info {
+  display: table;
+  height: 75px;
+  margin-left: 90px;
+}
+
+.attachmentItem .infoCell {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.attachmentItem .filename {
+  font-size: 12px;
+}
+
+.attachmentItem .delete {
+  color: #909090;
+  text-decoration: underline;
+}
+
+img.shadow {
+  border-bottom: 1px solid #d9d9d9;
+  border-right: 1px solid #d9d9d9;
+  background: #f7f7f7;
+}
+
+a img {
+  border: none;
+}

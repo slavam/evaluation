@@ -1,0 +1,15 @@
+%h1
+  = submit
+  показатель
+.content
+  - form_for @factor do |form|
+    %table.card
+      %tr
+        %th Полное название
+        %td= form.text_field :name, :size => 50
+      %tr
+        %th Короткое название
+        %td= form.text_field :short_name, :size => 50
+    %br
+  
+    = submit_tag submit

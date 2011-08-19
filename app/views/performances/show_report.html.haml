@@ -1,0 +1,70 @@
+# coding: utf-8
+%h2 Оценка эффективности деятельности #{@performances[0].direction.name+' '+@performances[0].division.name+' за '+@performances[0].period.description} 
+- block_name = ''
+- factor_total = 0
+- average_percent = 0
+- i = 0
+- kpi_total = 0
+- kpi_result = 0
+.content
+  %table.data
+    %tr
+      %th Блок
+      %th Вес блока
+      %th Показатель
+      %th Вес показателя
+      %th Доля
+      %th План
+      %th Факт
+      %th Процент выполнения
+      %th KPI
+    - for p in @performances
+      - if p.block.block_description.name != block_name
+        - if block_name > ''
+          %tr
+            %td{:colspan => 2}= ''
+            %td{:colspan => 2}= "ИТОГО"
+            %td{:colspan => 3}= factor_total
+            %td= average_percent/i
+            -#%td= kpi_total
+            %td= number_with_precision(kpi_total, :precision => 3, :separator => '.')
+        %tr   
+          %td= p.block.block_description.short_name
+          %td= number_to_percentage(p.block.block_weights.last.weight*100, :precision => 0)
+        - block_name = p.block.block_description.name
+        - factor_total = 0
+        - average_percent = 0
+        - i = 0
+        - kpi_result += kpi_total
+        - kpi_total = 0.0
+      - else
+        %tr
+          %td{:colspan => 8}= ''
+          %td= ''    
+      %tr
+        %td= ''
+        %td= ''
+        %td= p.factor.factor_description.short_name
+        %td= p.factor.factor_weights.last.weight
+        %td= p.rate
+        - factor_total+=p.rate
+        %td= p.plan
+        %td= p.fact
+        %td= p.exec_percent
+        - i += 1
+        - average_percent += p.exec_percent
+        %td= link_to p.kpi, :action => 'show_values', :division_id => p.division, :direction_id => p.direction, :factor_id => p.factor
+        - kpi_total += p.kpi 
+    %tr
+      %td{:colspan => 2}= ''
+      %td{:colspan => 2}= "ИТОГО"
+      %td{:colspan => 3}= factor_total
+      %td= average_percent/i
+      %td= kpi_total
+    %tr
+      %td{:colspan => 8}= "ИТОГО"
+      %td= number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.')
+
+.actions
+  =link_to 'Распечатать', :action => 'report_print', :period_id => @performances[0].period_id, :division_id => @performances[0].division_id, :direction_id => @performances[0].direction_id, :format => 'pdf'
+ 

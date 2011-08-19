@@ -1,0 +1,6 @@
+- label, path, html_options, hide = *menuItem
+- if !hide
+  - html_options ||= {}
+  - if current_page?(path)
+    - html_options.merge! :class => 'current' 
+  %li= link_to label, path, html_options

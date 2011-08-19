@@ -1,0 +1,18 @@
+# coding: utf-8
+%h1 Блоки показателей шаблона #{@direction.name} 
+
+.content
+  %table.data
+    %tr
+      %th Название
+      %th Вес
+    - for b in @direction.blocks
+      %tr
+        %td= link_to b.block_description.short_name, :action => 'show_eigen_factors', :id => b 
+        %td= b.block_weights.last.weight
+%br	
+.actions
+  = link_to 'Добавить блок', :controller => 'blocks', :action => 'new_block', :direction_id => @direction
+  %br
+  = link_to 'Изменить веса', :controller => 'blocks', :action => 'edit_weights', :direction_id => @direction
+  

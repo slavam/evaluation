@@ -1,0 +1,15 @@
+# coding: utf-8
+%h1 Шаблоны (направления) оценки эффективности 
+
+.content
+  %table.data
+    %tr
+      %th Название
+      %th
+    - for d in @directions
+      %tr
+        %td= link_to d.name, :action => 'show_eigen_blocks', :id => d 
+        %td= link_to "Изменить", :action => :edit, :id => d.id
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'

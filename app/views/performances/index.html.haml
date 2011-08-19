@@ -1,0 +1,33 @@
+# coding: utf-8
+%h1 Результаты деятельности 
+
+.content
+  %table.data
+    %tr
+      %th Период
+      %th Подразделение
+      %th Шаблон
+      %th Блок
+      %th Показатель
+      %th Доля
+      %th План
+      %th Факт
+      %th Процент выполнения
+      %th KPI
+    - for p in @performances
+      %tr
+        %td= p.period.description
+        %td= p.division.name 
+        %td= p.direction.name
+        %td= p.block.block_description.short_name
+        %td= p.factor.factor_description.short_name
+        %td= p.rate
+        %td= p.plan
+        %td= p.fact
+        %td= p.exec_percent
+        %td= p.kpi
+%br      
+.actions
+  = link_to 'Просмотр KPI> ', :action => 'get_report_params'
+  = link_to 'Расчет KPI', :action => 'get_calc_params'
+        

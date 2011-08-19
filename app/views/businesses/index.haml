@@ -1,0 +1,15 @@
+# coding: utf-8
+%h1 Бизнесы 
+
+.content
+  %table.data
+    %tr
+      %th Название
+      -#%th Код
+    - for b in @businesses
+      %tr
+        %td= link_to b.name, :action => 'show', :id => b 
+        -#%td= b.code
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'

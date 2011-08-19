@@ -1,0 +1,20 @@
+# coding: utf-8
+%h1 Показатели блока #{@block.block_description.short_name} шаблона #{@block.direction.name} 
+
+.content
+  %table.data
+    %tr
+      %th Название
+      %th Вес
+    - for f in @block.factors
+      %tr
+        - if f.articles.size>0
+          %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
+        - else
+          %td= f.factor_description.short_name
+        %td= f.factor_weights.last.weight
+%br	
+.actions
+  = link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block
+  %br  
+  = link_to 'Изменить веса', :controller => 'factors', :action => 'edit_weights', :block_id => @block

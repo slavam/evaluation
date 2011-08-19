@@ -1,0 +1,15 @@
+# coding: utf-8
+%h1 Подразделения
+
+.content
+  %table.data
+    %tr
+      %th Идентификатор 
+      %th Название
+      %th Код
+    - for sd in @subdivisions
+      %tr 
+        %td= link_to sd.id_division, :action => :my_show, :id => sd.id_division
+        %td= sd.division.to_utf
+        %td= sd.code_division
+= will_paginate @subdivisions        

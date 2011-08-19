@@ -1,0 +1,12 @@
+%h1
+  = submit
+  операцию
+.content
+  - form_for @action do |form|
+    %table.card
+      %tr
+        %th Полное название
+        %td= form.text_field :name
+    %br
+  
+    = submit_tag submit

@@ -1,0 +1,12 @@
+# coding: utf-8
+%h2 Операции 
+.content
+  %table.data
+    %tr
+      %th Название
+    - for a in @actions
+      %tr
+        %td= a.name
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'         

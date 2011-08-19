@@ -1,0 +1,17 @@
+# coding: utf-8
+%h1 Данные о сотруднике 
+
+.content
+  %table.data
+    %tr
+      %th Табельный номер:
+      %td= @worker.tabn
+    %tr
+      %th Фамилия:
+      %td= @worker.lastname.to_utf
+    %tr
+      %th Имя:
+      %td= @worker.firstname.to_utf
+    %tr
+      %th Отчество:
+      %td= @worker.soname.to_utf

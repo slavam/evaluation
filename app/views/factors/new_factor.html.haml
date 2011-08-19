@@ -1,0 +1,20 @@
+# coding: utf-8
+%h1 Новый показатель блока #{@block.block_description.short_name} шаблона #{@block.direction.name} 
+%h4 Примечание: сумма весов всех показателей должна равняться 1
+.content
+  - form_for 'factors[]', :d, :url => {:action => 'save_weights', :block_id => @block} do |form|
+    %table.data
+      %tr
+        %th Название
+        %th Вес
+      - for f in @block.factors
+        %tr
+          %td= f.factor_description.short_name
+          - @w = f.factor_weights.last
+          %td= text_field :w, :weight, :index => f.id, :size => 5
+      %tr
+        %td= select :new_factor, "factor_description_id", FactorDescription.all.collect {|fd| [ fd.short_name, fd.id ] }
+        %td= text_field :new_factor, :weight, :size => 5    
+      %br	
+    = submit_tag "Сохранить"
+        

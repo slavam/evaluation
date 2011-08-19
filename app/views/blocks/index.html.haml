@@ -1,0 +1,16 @@
+# coding: utf-8
+%h1 Блоки показателей 
+
+.content
+  %table.data
+    %tr
+      %th Название
+      %th Вес
+    - for b in @blocks
+      %tr
+        %td= link_to b.name, :action => 'show', :id => b 
+        %td= b.weight
+-#        %td= link_to 'Показатели', factors_path(b.id)
+-#%br	
+-#.actions
+  -#= link_to 'Добавить', :action => 'new'
