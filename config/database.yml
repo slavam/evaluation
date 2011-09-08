@@ -1,10 +1,14 @@
 plan_fact:
   adapter: oracle_enhanced
   database: appbb.adir.vbr.ua:1521/XE
-#  database: XE
-#  database: 127.0.0.1/XE
   username: v_morhachov
   password: v_morhachov
+
+odb:
+  adapter: oracle_enhanced
+  database: ora0-i00:1521/SRBANK
+  username: kpi
+  password: R4EW9OLK
 
 personnel:
   adapter: sqlserver

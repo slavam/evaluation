@@ -1,15 +1,15 @@
 # coding: utf-8
-%h1 Статьи показателя #{@factor.factor_description.short_name} блока #{@factor.block.block_description.short_name} шаблона #{@factor.block.direction.name} 
+%h3 Статьи показателя "#{@factor.factor_description.short_name}" блока "#{@factor.block.block_description.short_name}" шаблона "#{@factor.block.direction.name}" 
 
 .content
   %table.data
     %tr
-      %th Название
-      %th Операция
+      %th Обозначение
+      %th Формирует
     - for a in @factor.articles
       %tr
         %td= a.name
         %td= a.action.name
 %br	
 .actions
-  -#= link_to 'Добавить', :action => 'new'
+  = link_to 'Добавить', :action => 'new_article', :controller => 'articles', :factor_id => @factor 

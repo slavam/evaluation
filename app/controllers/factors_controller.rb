@@ -1,9 +1,6 @@
 # coding: utf-8
 class FactorsController < ApplicationController
   before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights]
-#  def index
-#    @factors = Factor.order(:name)
-#  end
   
   def show
   end
@@ -23,58 +20,68 @@ class FactorsController < ApplicationController
   end
   
   def save_weights
-    @factors = @block.factors
-    if @factors.size>0
-      @factors.collect { |f|
-        @factor_weight = FactorWeight.new
-        @factor_weight.factor_id = f.id
-        @factor_weight.start_date = Time.now
-        @factor_weight.weight = params[:w][f.id.to_s][:weight]
-        @factor_weight.save
-      }
+    total_weight = 0
+    if params[:w]
+      params[:w].keys.each  do |id|
+        total_weight += params[:w][id.to_s][:weight].to_f
+      end
     end
-    @factor = Factor.new
-    @factor.block_id = params[:block_id]
-    @factor.factor_description_id = params[:new_factor][:factor_description_id]
-    @factor.save
-    @factor_weight = FactorWeight.new
-    @factor_weight.factor_id = @factor.id
-    @factor_weight.weight = params[:new_factor][:weight]
-    @factor_weight.start_date = Time.now
-#    @factor_weight.description = params[:new_block][:description]
-    @factor_weight.save
-    redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+    total_weight += params[:new_factor][:weight].to_f
+    if total_weight>1
+      flash_error :weight_is_wrong
+      redirect_to :action => 'new_factor', :block_id => params[:block_id]
+    else 
+      @factors = @block.factors
+      if @factors.size>0
+        @factors.collect { |f|
+          @factor_weight = FactorWeight.new
+          @factor_weight.factor_id = f.id
+          @factor_weight.start_date = Time.now
+          @factor_weight.weight = params[:w][f.id.to_s][:weight]
+          @factor_weight.description = params[:new_block][:description]
+          @factor_weight.save
+        }
+      end
+      @factor = Factor.new
+      @factor.block_id = params[:block_id]
+      @factor.factor_description_id = params[:new_factor][:factor_description_id]
+      @factor.save
+      @factor_weight = FactorWeight.new
+      @factor_weight.factor_id = @factor.id
+      @factor_weight.weight = params[:new_factor][:weight]
+      @factor_weight.start_date = Time.now
+      @factor_weight.description = params[:new_block][:description]
+      @factor_weight.save
+      redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+    end
   end
   
   def edit_weights
   end
   
   def save_updated_weights
-    @factors = @block.factors
-    if @factors.size>0
-      @factors.collect { |f|
-        @factor_weight = FactorWeight.new
-        @factor_weight.factor_id = f.id
-        @factor_weight.start_date = Time.now
-        @factor_weight.weight = params[:w][f.id.to_s][:weight]
-        @factor_weight.save
-      }
+    total_weight = 0
+    params[:w].keys.each  do |id|
+      total_weight += params[:w][id.to_s][:weight].to_f
     end
-    redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+    if total_weight>1
+      flash_error :weight_is_wrong
+      redirect_to :action => 'edit_weights', :block_id => params[:block_id]
+    else 
+      @factors = @block.factors
+      if @factors.size>0
+        @factors.collect { |f|
+          @factor_weight = FactorWeight.new
+          @factor_weight.factor_id = f.id
+          @factor_weight.start_date = Time.now
+          @factor_weight.weight = params[:w][f.id.to_s][:weight]
+          @factor_weight.description = params[:w][f.id.to_s][:description]
+          @factor_weight.save
+        }
+      end
+      redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+    end
   end
-#  def create
-#    @factor = Factor.new params[:factor]
-#    if not @factor.save
-#      render :new
-#    else
-#      @weight = WeightFactor.new
-#      @weight.factor_id = @factor.id
-#      @weight.template_id = params[:weight_factor][:template_id]
-#      @weight.weight = params[:weight_factor][:weight]
-#      @weight.save
-#      redirect_to :factors
-#    end
-#  end
   
   def destroy
     @factor.destroy
@@ -89,6 +96,5 @@ class FactorsController < ApplicationController
   
   def find_block
     @block = Block.find params[:block_id]
-  end
-  
+  end  
 end

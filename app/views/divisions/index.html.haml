@@ -1,0 +1,16 @@
+# coding: utf-8
+%h2 Отделения 
+.content
+  %table.data
+    %tr
+      %th Код
+      %th ID
+      %th Название
+    - for d in @divisions
+      %tr
+        %td= d.code
+        %td= d.id
+        %td= d.name
+%br	
+-#.actions
+  -#= link_to 'Добавить', :action => 'new'         

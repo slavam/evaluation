@@ -42,9 +42,17 @@ Evaluation::Application.routes.draw do
       get :my_show
     end
   end
+  
   resources :businesses
   resources :actions
-#  resources :branch_of_banks
+  resources :divisions
+  
+  resources :articles do
+    collection do
+      get :new_article
+      post :save_article
+    end
+  end
 
   # Sample of regular route:
   #   match 'products/:id' => 'catalog#view'

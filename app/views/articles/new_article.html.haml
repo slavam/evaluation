@@ -1,0 +1,16 @@
+# coding: utf-8
+%h1 Новая статья показателя "#{@factor.factor_description.short_name}" блока "#{@factor.block.block_description.short_name}" шаблона "#{@factor.block.direction.name}" 
+
+.content
+  - form_for @article, :url => {:action => 'save_article', :factor_id => @factor} do |form|
+    %table.card
+      %tr
+        %th Обозначение:
+        %td= form.text_field :name
+      %tr
+        %th Формирует:
+        %td= form.select :action_id, Action.all.collect {|a| [ a.name, a.id ] }
+    %br
+  
+    = submit_tag "Сохранить"
+        

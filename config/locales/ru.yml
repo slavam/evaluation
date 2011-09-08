@@ -1,5 +1,6 @@
 ru:
   flash:
+    weight_is_wrong: Сумма весов не равна 1
     kpi_not_ready: KPI еще не расчитаны 
     require_admin: Only admin user can see this page
     require_user: You must be logged in to access this page

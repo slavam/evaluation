@@ -1,16 +1,18 @@
-%h1 Изменение весов блоков для шаблона #{@direction.name}
+%h1 Изменение весов блоков для шаблона "#{@direction.name}"
 %h4 Примечание: сумма весов всех блоков должна равняться 1
 .content
   - form_for 'blocks[]', :d, :url => {:action => 'save_updated_weights', :direction_id => @direction} do |form|
-    %table.card
+    %table.data
       %tr
         %th Название
         %th Вес
+        %th Описание
       - for @b in @blocks
         %tr
           %td= @b.block_description.short_name
           - @w = @b.block_weights.last
           %td= text_field :w, :weight, :index => @b.id, :size => 4
+          %td= text_field :w, :description, :index => @b.id, :size => 50
       %br
     = submit_tag "Сохранить"
     
