@@ -1,5 +1,8 @@
 # coding: utf-8
-%h2 Оценка эффективности деятельности #{@performances[0].direction.name+' '+@performances[0].division.name+' за '+@performances[0].period.description} 
+%h2 Оценка эффективности деятельности 
+%h3 Отделение: #{@performances[0].division.name}
+%h3 Шаблон: #{@performances[0].direction.name}
+%h3 Период: #{@performances[0].period.description}  
 - block_name = ''
 - factor_total = 0
 - average_percent = 0
@@ -17,17 +20,19 @@
       %th План
       %th Факт
       %th Процент выполнения
-      %th KPI
+      %th{style: 'text-align: center'} KPI
     - for p in @performances
       - if p.block.block_description.name != block_name
         - if block_name > ''
           %tr
             %td{:colspan => 2}= ''
             %td{:colspan => 2}= "ИТОГО"
-            %td{:colspan => 3}= factor_total
-            %td= average_percent/i
-            -#%td= kpi_total
-            %td= number_with_precision(kpi_total, :precision => 3, :separator => '.')
+            %td{:colspan => 3}= number_with_precision(factor_total, :precision => 4, :separator => '.')
+            %td{style: 'text-align: right'}= |
+              number_with_precision(average_percent/i, :precision => 3, :separator => '.') |
+            -  
+            %td{style: 'text-align: right; font-weight: bold'}= |
+                          number_with_precision(kpi_total, :precision => 3, :separator => '.') | 
         %tr   
           %td= p.block.block_description.short_name
           %td= number_to_percentage(p.block.block_weights.last.weight*100, :precision => 0)
@@ -46,25 +51,38 @@
         %td= ''
         %td= p.factor.factor_description.short_name
         %td= p.factor.factor_weights.last.weight
-        %td= p.rate
+        %td= number_with_precision(p.rate, :precision => 4, :separator => '.')
         - factor_total+=p.rate
-        %td= p.plan
-        %td= p.fact
-        %td= p.exec_percent
+        %td{style: 'text-align: right'}= |
+          number_with_delimiter(p.plan, :delimiter => ",", :precision => 2, :separator => '.') |
+        -  
+        %td{style: 'text-align: right'}= |
+          number_with_delimiter(p.fact, :delimiter => ",", :precision => 2, :separator => '.') |
+        -
+        %td{style: 'text-align: right'}= |
+          number_with_precision(p.exec_percent, :precision => 3, :separator => '.') |
         - i += 1
         - average_percent += p.exec_percent
-        %td= link_to p.kpi, :action => 'show_values', :division_id => p.division, :direction_id => p.direction, :factor_id => p.factor
+        %td{style: 'text-align: right'}= |
+          link_to number_with_precision(p.kpi, :precision => 3, :separator => '.'), |
+          :action => 'show_values', :division_id => p.division, :direction_id => p.direction, |
+          :factor_id => p.factor |
         - kpi_total += p.kpi 
     %tr
       %td{:colspan => 2}= ''
       %td{:colspan => 2}= "ИТОГО"
-      %td{:colspan => 3}= factor_total
-      %td= average_percent/i
-      %td= kpi_total
+      %td{:colspan => 3}= number_with_precision(factor_total, :precision => 4, :separator => '.')
+      %td{style: 'text-align: right'}= |
+        number_with_precision(average_percent/i, :precision => 3, :separator => '.') | 
+      -
+      %td{style: 'text-align: right; font-weight: bold'}= |
+        number_with_precision(kpi_total, :precision => 3, :separator => '.') |
+      -  
     %tr
       %td{:colspan => 8}= "ИТОГО"
-      %td= number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.')
+      %td{style: 'text-align: right; font-weight: bold'}= |
+        number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.') |
 
-.actions
-  =link_to 'Распечатать', :action => 'report_print', :period_id => @performances[0].period_id, :division_id => @performances[0].division_id, :direction_id => @performances[0].direction_id, :format => 'pdf'
+-#.actions
+  -#=link_to 'Распечатать', :action => 'report_print', :period_id => @performances[0].period_id, :division_id => @performances[0].division_id, :direction_id => @performances[0].direction_id, :format => 'pdf'
  

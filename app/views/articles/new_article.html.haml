@@ -10,6 +10,9 @@
       %tr
         %th Формирует:
         %td= form.select :action_id, Action.all.collect {|a| [ a.name, a.id ] }
+      %tr
+        %th Тип отбора данных:
+        %td= form.select :select_type_id, SelectType.all.collect {|st| [ st.name, st.id ] }
     %br
   
     = submit_tag "Сохранить"

@@ -1,61 +1,113 @@
 # coding: utf-8
-%h1 Значения показателя "#{@values[0].factor.factor_description.name}" 
+%h3 Динамика показателя: #{@values[0].factor.factor_description.short_name}
+%h3 Блок: #{@values[0].block.block_description.short_name}
+%h3 Шаблон: #{@values[0].direction.short_name}
+%h3 Отделение: #{@values[0].division.name} 
      
 %style{:type => "text/css", :media => "screen"}
 :javascript
   $(function(){
     new Highcharts.Chart({
       chart: {
-        renderTo: "kpi_chart"
+        renderTo: "kpi_chart",
+        zoomType: 'xy'
       },
       title: {
-        text: "Динамика KPI"
+        text: "Динамика показателя"
       },
-      xAxis: {
-        type: "datetime"
-      },
-      yAxis: {
+      xAxis: [{
+         categories: #{
+           cat = []
+           for v in @values do 
+             cat << v.period.description
+           end
+           cat} 
+      }],
+      yAxis: [{
         title: {
-          text: "Значения KPI"
+          text: "KPI",
+          style: {
+              color: '#AA4643'
+            }
+        },
+        labels: {
+          formatter: function() {
+            return this.value;
+          },
+          style: {
+            color: '#AA4643'
+          }
         }
       },
+      {
+         title: {
+            text: 'План Факт'
+         },
+         labels: {
+            formatter: function() {
+               return this.value +' грн.';
+            }
+         },
+         opposite: true
+      }
+      ],
       tooltip: {
         formatter: function(){
-          return Highcharts.dateFormat("%B %e, %Y", this.x) + ': '+
-          Highcharts.numberFormat(this.y, 2)+ '%';
+          return Highcharts.numberFormat(this.y, 2);
         }
       },
       series: [{
-        name: "Факт",
-        pointInterval: #{ 1.month * 1000},
-        pointStart: #{ DateTime.parse(@values[0].calc_date.to_s).to_i * 1000}, 
+        name: "KPI",
+        color: '#AA4643',
+        yAxis: 0,
         data: #{ 
           val = []
           for vv in @values do 
             val << vv.kpi 
           end  
           val}
-      },{
+      },
+      {
         name: "План",
-        pointInterval: #{ 1.month * 1000},
-        pointStart: #{ DateTime.parse(@values[0].calc_date.to_s).to_i * 1000}, 
+        yAxis: 1,
+        color: '#4572A7',
         data: #{ 
           val = []
           for vv in @values do 
-            val << 15 
+            val << vv.plan 
+          end  
+          val}
+      },
+      {
+        name: "Факт",
+        yAxis: 1,
+        color: '#89A54E',
+        data: #{ 
+          val = []
+          for vv in @values do 
+            val << vv.fact 
           end  
           val}
       }]
     });
   });
 
-%div{'id' => "kpi_chart", 'style'=> "width:560px; height:300px;"}
+
+
+%div{'id' => "kpi_chart", 'style'=> "width:760px; height:300px;"}
 .content
   %table.data
     %tr
-      %th Дата
+      %th Период
       %th KPI
+      %th План
+      %th Факт
+      %th Дата расчета
     - for v in @values
       %tr
-        %td= v.calc_date
+        %td= v.period.description
         %td= v.kpi
+        %td= v.plan
+        %td= v.fact
+        %td= v.calc_date
+        

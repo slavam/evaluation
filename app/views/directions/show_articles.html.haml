@@ -1,15 +1,17 @@
 # coding: utf-8
-%h3 Статьи показателя "#{@factor.factor_description.short_name}" блока "#{@factor.block.block_description.short_name}" шаблона "#{@factor.block.direction.name}" 
+%h3 Статьи показателя "#{@factor.factor_description.short_name}" блока #{link_to @factor.block.block_description.short_name, :action => "show_eigen_factors", :id => @factor.block_id} шаблона #{link_to @factor.block.direction.name, :action => "show_eigen_blocks", :id => @factor.block.direction.id}
 
 .content
   %table.data
     %tr
       %th Обозначение
       %th Формирует
+      %th Тип отбора данных
     - for a in @factor.articles
       %tr
         %td= a.name
         %td= a.action.name
+        %td= a.select_type.name
 %br	
 .actions
   = link_to 'Добавить', :action => 'new_article', :controller => 'articles', :factor_id => @factor 

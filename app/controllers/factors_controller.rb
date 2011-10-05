@@ -1,6 +1,7 @@
 # coding: utf-8
 class FactorsController < ApplicationController
   before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights]
+#  before_filter :find_factor, :only => :destroy
   
   def show
   end
@@ -27,7 +28,7 @@ class FactorsController < ApplicationController
       end
     end
     total_weight += params[:new_factor][:weight].to_f
-    if total_weight>1
+    if (total_weight-1).abs>0.00001
       flash_error :weight_is_wrong
       redirect_to :action => 'new_factor', :block_id => params[:block_id]
     else 
@@ -38,7 +39,7 @@ class FactorsController < ApplicationController
           @factor_weight.factor_id = f.id
           @factor_weight.start_date = Time.now
           @factor_weight.weight = params[:w][f.id.to_s][:weight]
-          @factor_weight.description = params[:new_block][:description]
+          @factor_weight.description = params[:new_factor][:description]
           @factor_weight.save
         }
       end
@@ -50,7 +51,7 @@ class FactorsController < ApplicationController
       @factor_weight.factor_id = @factor.id
       @factor_weight.weight = params[:new_factor][:weight]
       @factor_weight.start_date = Time.now
-      @factor_weight.description = params[:new_block][:description]
+      @factor_weight.description = params[:new_factor][:description]
       @factor_weight.save
       redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
     end
@@ -82,10 +83,15 @@ class FactorsController < ApplicationController
       redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
     end
   end
+ 
+#  def delete_factor
+#    @factors = Factor.where  
+#  end
   
   def destroy
+    block_id = @factor.block_id
     @factor.destroy
-    redirect_to factors_path
+    redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => block_id
   end
  
   private
