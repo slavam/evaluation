@@ -28,8 +28,8 @@
               = render :partial => 'layouts/menuItem', :collection => [ |
                 ['Персонал',  workers_path], |
                 ['Подразделения',  subdivisions_path], |
-                ['Отделения',  divisions_path], |
-                ['Бизнесы', businesses_path], |
+                ['Отделения (ФД)',  branch_of_banks_path], | 
+                ['Отделения (ОДБ)',  divisions_path], |
                 ['Шаблоны',  directions_path], | 
                 ['Показатели', factor_descriptions_path], |
                 ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'], | 
@@ -46,6 +46,8 @@
                 
                 -#['Показатели', factors_path], |
                 -#['Блоки', blocks_path], |
+                -#['Ввод данных', new_value_path], |
+                -#['Бизнесы', businesses_path], |
                 -#['Шаблоны',  directions_path] |
                 -#['Результаты',  performances_path] |
                 

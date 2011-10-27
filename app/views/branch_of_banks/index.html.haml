@@ -1,16 +1,18 @@
 # coding: utf-8
-%h2 Отделения 
+%h2 Отделения банка по регионам
 .content
   %table.data
     %tr
       %th ID
       %th Код
       %th Название
-    - for d in @divisions
+      %th Родитель
+    - for b in @branches
       %tr
-        %td= d.id
-        %td= d.code
-        %td= d.name
+        %td= b.id
+        %td= b.code
+        %td= b.name
+        %td= b.parent
 %br	
 -#.actions
   -#= link_to 'Добавить', :action => 'new'         

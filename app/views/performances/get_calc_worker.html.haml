@@ -1,0 +1,15 @@
+# coding: utf-8
+%h2 Выберите сотрудника для расчета KPI 
+%h4 Период: #{@period.description}
+%h4 Направление: #{@direction.short_name}
+
+.content
+  - form_for :report_params, :action => "calc_kpi", :method => "get" do 
+    %table
+      %tr
+        %th Сотрудник:
+        %td= select :report_params, "worker_id", Worker.find_by_sql(" select e.id_emp id, e.lastname lastname, e.firstname firstname, e.soname soname, p.division parent from emp2doc e join div2doc d on d.id_division = e.id_division join div2doc p on p.id_division = d.parent_id where e.id_division = 56922 or e.code_division like '%8000' order by p.code_division").collect {|d| [ d.parent.to_utf+' - '+d.lastname.to_utf+' '+d.firstname.to_utf+' '+d.soname.to_utf, d.id ] }
+        %td= hidden_field_tag :direction_id, @direction.id
+        %td= hidden_field_tag :period_id, @period.id
+    %br    
+    = submit_tag "Расчитать KPI"

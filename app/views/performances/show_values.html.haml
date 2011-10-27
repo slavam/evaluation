@@ -1,8 +1,9 @@
 # coding: utf-8
-%h3 Динамика показателя: #{@values[0].factor.factor_description.short_name}
+%h2 Динамика показателя "#{@values[0].factor.factor_description.short_name}"
+%h3 Отделение: #{@values[0].division.name} 
 %h3 Блок: #{@values[0].block.block_description.short_name}
 %h3 Шаблон: #{@values[0].direction.short_name}
-%h3 Отделение: #{@values[0].division.name} 
+
      
 %style{:type => "text/css", :media => "screen"}
 :javascript
@@ -44,8 +45,15 @@
             text: 'План Факт'
          },
          labels: {
-            formatter: function() {
-               return this.value +' грн.';
+         formatter: function() {
+            var unit = {
+               '1': '%',
+               '2': 'грн.',
+               '3': 'шт.',
+               '4': ''
+            }[#{@values[0].factor.factor_description.unit_id}];
+            
+            return  this.value +' '+ unit;
             }
          },
          opposite: true
@@ -99,15 +107,24 @@
   %table.data
     %tr
       %th Период
-      %th KPI
-      %th План
-      %th Факт
+      %th{style: 'text-align: center'} KPI
+      %th{style: 'text-align: center'} План
+      %th{style: 'text-align: center'} Факт
       %th Дата расчета
     - for v in @values
       %tr
         %td= v.period.description
-        %td= v.kpi
-        %td= v.plan
-        %td= v.fact
-        %td= v.calc_date
+        %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        - case v.factor.factor_description.unit.name 
+        -   when 'грн.' then 
+          %td{style: 'text-align: right'}= number_to_currency(v.plan, :unit => "", :format => "%n %u")
+          %td{style: 'text-align: right'}= number_to_currency(v.fact, :unit => "", :format => "%n %u")
+        -   when '%' then  
+          %td{style: 'text-align: right'}= number_with_precision(v.plan, :precision => 3, :separator => '.')
+          %td{style: 'text-align: right'}= number_with_precision(v.fact, :precision => 3, :separator => '.')
+        -    else          
+          %td{style: 'text-align: right'}= number_with_precision(v.plan, :precision => 0, :separator => '.')
+          %td{style: 'text-align: right'}= number_with_precision(v.fact, :precision => 0, :separator => '.')
+
+        %td= v.calc_date.to_date
         

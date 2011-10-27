@@ -11,6 +11,7 @@ class FactorDescriptionsController < ApplicationController
   
   def create
     @factor = FactorDescription.new params[:factor_description]
+    @factor.unit_id = params[:units][:unit_id]
     if not @factor.save
       render :new
     else
@@ -22,6 +23,7 @@ class FactorDescriptionsController < ApplicationController
   end
   
   def update
+    @factor.unit_id = params[:units][:unit_id]
     if not @factor.update_attributes params[:factor_description]
       render :action => :edit
     else

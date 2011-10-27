@@ -1,0 +1,24 @@
+# coding: utf-8
+%h2 Значения показателей 
+.content
+  %table.data
+    %tr
+      %th Период
+      %th Отделение
+      %th Сотрудник
+      %th Показатель
+      %th План/Факт
+      %th Значение
+      %th Дата ввода
+    - for v in @values
+      %tr
+        %td= v.period.description
+        %td= v.branch_of_bank.name
+        %td= ' '
+        %td= v.factor.factor_description.short_name
+        %td= v.action.name
+        %td= v.factor_value
+        %td= v.create_date
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'         

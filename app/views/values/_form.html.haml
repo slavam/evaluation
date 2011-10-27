@@ -1,0 +1,28 @@
+%h1
+  = submit
+  значение
+.content
+  - form_for @value do |form|
+    %table.card
+      %tr
+        %th Период:
+        %td= form.select :period_id, Period.all.collect {|p| [ p.description, p.id ] }
+      %tr
+        %th Формирует:
+        %td= form.select :type_id, Action.all.collect {|a| [ a.name, a.id ] }
+      %tr
+        %th Показатель:
+        %td= form.select :factor_id, FactorDescription.order(:short_name).collect {|a| [ a.short_name, a.id ] }
+      %tr
+        %th Отделение:
+        %td= form.select :division_id, BranchOfBank.find_by_sql(" select p.id id, p.name name, d.name parent from fin.division d join FIN.division p on d.id = p.parent_id where p.code < '900' and d.code >= '000' order by d.code, p.code").collect {|d| [ d.parent+' - '+d.name, d.id ] }
+      %tr
+        %th Сотрудник:
+        %td= form.select :worker_id, Worker.find_by_sql(" select e.id_emp id, e.lastname lastname, e.firstname firstname, e.soname soname, p.division parent from emp2doc e join div2doc d on d.id_division = e.id_division join div2doc p on p.id_division = d.parent_id where e.id_division = 56922 or e.code_division like '%8000' order by p.code_division").collect {|d| [ d.parent.to_utf+' - '+d.lastname.to_utf+' '+d.firstname.to_utf+' '+d.soname.to_utf, d.id ] }
+        -#%td= form.select :worker_id, Worker.select([:id_emp, :tabn, :id_division, :lastname, :firstname, :soname]).order(:id_emp).collect {|d| [ d.lastname.to_utf, d.id_emp ] }
+      %tr
+        %th Значение:
+        %td= form.text_field :factor_value
+    %br
+  
+    = submit_tag submit

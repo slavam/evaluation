@@ -1,0 +1,22 @@
+# coding: utf-8
+- if @direction.level_id == 2
+  %h4 Выберите дирекцию для просмотра KPI 
+- else
+  %h4 Выберите отделение для просмотра KPI  
+%h4 Период: #{@period.description}
+%h4 Направление: #{@direction.short_name}
+
+.content
+  - form_for :report_params, :url => {:action => "show_report", 'report_params' => {'period_id' => @period.id}}, :html => {:method => "get"} do 
+    %table
+      %tr
+        - if @direction.level_id == 2
+          %th= "Дирекция:"
+          %td= select :report_params, "division_id", BranchOfBank.find_by_sql(" select p.id id, p.name name, d.name parent from fin.division d join FIN.division p on d.id = p.parent_id where p.code < '900' and d.code = '000' order by p.code").collect {|d| [ d.name, d.id ] }
+        - else
+          %th= "Отделение:"
+          %td= select :report_params, "division_id", BranchOfBank.find_by_sql(" select p.id id, p.name name, d.name parent from fin.division d join FIN.division p on d.id = p.parent_id where p.code < '900' and d.code > '000' order by d.code, p.code").collect {|d| [ d.parent+' - '+d.name, d.id ] }
+        %td= hidden_field_tag :direction_id, @direction.id
+        %td= hidden_field_tag :period_id, @period.id
+    %br    
+    = submit_tag "Показать KPI"

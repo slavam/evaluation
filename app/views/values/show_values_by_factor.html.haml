@@ -1,0 +1,23 @@
+# coding: utf-8
+%h2 Значения показателя "#{@factor.factor_description.short_name}" 
+.content
+  %table.data
+    %tr
+      %th Период
+      %th Отделение
+      %th Сотрудник
+      %th План/Факт
+      %th Значение
+      %th Дата ввода
+    - for v in @values
+      %tr
+        %td= v.period.description
+        %td= v.branch_of_bank.name
+        %td= v.fullname
+        %td= v.action.name
+        %td= v.factor_value
+        %td= v.create_date
+        %td= link_to 'Удалить', :action => 'delete_value', :value_id => v.id, :confirm => "Do you really want to delete value?"
+%br	
+.actions
+  = link_to 'Добавить значение', :action => @factor.block.direction.level_id == 3 ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => @factor

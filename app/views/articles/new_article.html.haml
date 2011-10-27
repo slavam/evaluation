@@ -1,5 +1,8 @@
 # coding: utf-8
-%h1 Новая статья показателя "#{@factor.factor_description.short_name}" блока "#{@factor.block.block_description.short_name}" шаблона "#{@factor.block.direction.name}" 
+%h3 Новая статья 
+%h4 Показатель: #{@factor.factor_description.short_name} 
+%h4 Блок: #{@factor.block.block_description.short_name} 
+%h4 Шаблон: #{@factor.block.direction.name} 
 
 .content
   - form_for @article, :url => {:action => 'save_article', :factor_id => @factor} do |form|
@@ -13,6 +16,9 @@
       %tr
         %th Тип отбора данных:
         %td= form.select :select_type_id, SelectType.all.collect {|st| [ st.name, st.id ] }
+      %tr
+        %th Параметр:
+        %td= form.text_field :source_name
     %br
   
     = submit_tag "Сохранить"

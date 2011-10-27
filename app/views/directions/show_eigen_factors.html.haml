@@ -7,6 +7,7 @@
       %th Название
       %th Вес
       %th Описание
+      %th 
     - for f in @block.factors
       - if f.factor_weights.last.weight > 0.00001
         %tr
@@ -14,6 +15,10 @@
           - fw = f.factor_weights.last
           %td= fw.weight
           %td= fw.description
+          %td= link_to "Ввод данных", :controller => 'values', :action => @block.direction.level_id == 3 ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => f
+          - v = Value.where('factor_id=?',f.id)
+          - if v.size > 0
+            %td= link_to "Просмотр", :controller => 'values', :action => 'show_values_by_factor', :factor_id => f 
 %br	
 .actions
   = link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block

@@ -15,11 +15,11 @@
       %th Блок
       %th Вес блока
       %th Показатель
-      %th Вес показателя
+      %th{style: 'text-align: center'} Вес показателя
       %th Доля
-      %th План
-      %th Факт
-      %th Процент выполнения
+      %th{style: 'text-align: center'} План 
+      %th{style: 'text-align: center'} Факт 
+      %th{style: 'text-align: center'} Процент выполнения
       %th{style: 'text-align: center'} KPI
     - for p in @performances
       - if p.block.block_description.name != block_name
@@ -27,7 +27,7 @@
           %tr
             %td{:colspan => 2}= ''
             %td{:colspan => 2}= "ИТОГО"
-            %td{:colspan => 3}= number_with_precision(factor_total, :precision => 4, :separator => '.')
+            %td{:colspan => 3}= number_with_precision(factor_total, :precision => 3, :separator => '.')
             %td{style: 'text-align: right'}= |
               number_with_precision(average_percent/i, :precision => 3, :separator => '.') |
             -  
@@ -49,15 +49,26 @@
       %tr
         %td= ''
         %td= ''
-        %td= p.factor.factor_description.short_name
-        %td= p.factor.factor_weights.last.weight
-        %td= number_with_precision(p.rate, :precision => 4, :separator => '.')
+        %td= p.factor.factor_description.short_name+(p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':'')
+        %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.last.weight*100, :precision => 0)
+        %td= number_with_precision(p.rate, :precision => 3, :separator => '.')
         - factor_total+=p.rate
-        %td{style: 'text-align: right'}= |
-          number_with_delimiter(p.plan, :delimiter => ",", :precision => 2, :separator => '.') |
-        -  
-        %td{style: 'text-align: right'}= |
-          number_with_delimiter(p.fact, :delimiter => ",", :precision => 2, :separator => '.') |
+        - 
+        - case p.factor.factor_description.unit.name 
+        -   when 'грн.' then 
+          %td{style: 'text-align: right'}= number_to_currency(p.plan, :unit => "", :format => "%n %u")
+        -   when '%' then  
+          %td{style: 'text-align: right'}= number_with_precision(p.plan, :precision => 3, :separator => '.')
+        -    else          
+          %td{style: 'text-align: right'}= number_with_precision(p.plan, :precision => 0, :separator => '.')
+        - 
+        - case p.factor.factor_description.unit.name 
+        -   when 'грн.' then 
+          %td{style: 'text-align: right'}= number_to_currency(p.fact, :unit => "", :format => "%n %u")
+        -   when '%' then  
+          %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 3, :separator => '.')
+        -    else          
+          %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 0, :separator => '.')
         -
         %td{style: 'text-align: right'}= |
           number_with_precision(p.exec_percent, :precision => 3, :separator => '.') |
@@ -71,7 +82,7 @@
     %tr
       %td{:colspan => 2}= ''
       %td{:colspan => 2}= "ИТОГО"
-      %td{:colspan => 3}= number_with_precision(factor_total, :precision => 4, :separator => '.')
+      %td{:colspan => 3}= number_with_precision(factor_total, :precision => 3, :separator => '.')
       %td{style: 'text-align: right'}= |
         number_with_precision(average_percent/i, :precision => 3, :separator => '.') | 
       -

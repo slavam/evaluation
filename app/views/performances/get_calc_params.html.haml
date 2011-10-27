@@ -1,17 +1,14 @@
 # coding: utf-8
-%h1 Задайте параметры для расчета KPI
+%h2 Задайте параметры для расчета KPI
 
 .content
-  - form_for :report, :url => { :action => "calc_kpi" }, :html => {:method => "get"} do 
+  - form_for :report, :url => { :action => "get_calc_params_2" }, :html => {:method => "get"} do 
     %table
       %tr
         %th= "Период:"
         %td= select :report_params, "period_id", Period.all.collect {|p| [ p.description, p.id ] }
       %tr
-        %th= "Подразделение:"
-        %td= select :report_params, "division_id", BranchOfBank.all.collect {|d| [ d.name, d.id ] }
-      %tr
         %th= "Шаблон:"
         %td= select :report_params, "direction_id", Direction.order(:name).collect {|o| [ o.name, o.id ] }
             
-    = submit_tag "Расчитать KPI"
+    = submit_tag "Продолжить"

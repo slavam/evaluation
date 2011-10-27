@@ -22,6 +22,7 @@ class DirectionsController < ApplicationController
   
   def create
     @direction = Direction.new params[:direction]
+    @direction.level_id = params[:levels][:level_id]
     if not @direction.save
       render :new
     else
@@ -33,6 +34,7 @@ class DirectionsController < ApplicationController
   end
 
   def update
+    @direction.level_id = params[:levels][:level_id]
     if not @direction.update_attributes params[:direction]
       render :action => :edit
     else

@@ -25,10 +25,13 @@ Evaluation::Application.routes.draw do
     end
   end
 #  resources :workers
-#  resources :weight_factors
+  resources :branch_of_banks
   resources :performances do
     collection do
-      get :get_report_params, :report_print, :get_calc_params, :calc_kpi, :show_report, :show_values
+      get :get_report_params, :get_report_params_2, :get_report_division, 
+        :report_print, :get_calc_params, :get_calc_params_2, :get_calc_division, 
+        :calc_kpi, :show_report, :show_values, :get_calc_worker
+#, :calc_worker_kpi
     end
   end
 
@@ -46,6 +49,19 @@ Evaluation::Application.routes.draw do
   resources :businesses
   resources :actions
   resources :divisions
+  resources :levels
+#  match '/values/destroy', :controller => 'values', :action => 'destroy'
+
+
+  resources :values do
+#    delete :destroy, :on => :member
+    collection do
+      get :add_data_by_division, :add_data_by_worker, :show_values_by_factor, :delete_value
+      post :save_value
+#      delete :delete_value
+    end
+  end
+#  match '/destroy' => "values#destroy", :as => "destroy"
   
   resources :articles do
     collection do

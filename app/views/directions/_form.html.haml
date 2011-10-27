@@ -5,11 +5,14 @@
   - form_for @direction do |form|
     %table.card
       %tr
-        %th Полное название
-        %td= form.text_field :name
+        %th Полное название:
+        %td= form.text_field :name, :size => 100
       %tr
-        %th Сокращенное название
-        %td= form.text_field :short_name
+        %th Сокращенное название:
+        %td= form.text_field :short_name, :size => 50
+      %tr
+        %th Уровень:
+        %td= select :levels, "level_id", Level.all.collect {|l| [ l.name, l.id ] }
     %br
   
     = submit_tag submit

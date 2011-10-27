@@ -5,10 +5,12 @@
   %table.data
     %tr
       %th Название
+      %th Уровень
       %th
     - for d in @directions
       %tr
-        %td= link_to d.name, :action => 'show_eigen_blocks', :id => d 
+        %td= link_to d.name, :action => 'show_eigen_blocks', :id => d
+        %td= d.level.name
         %td= link_to "Изменить", :action => :edit, :id => d.id
 %br	
 .actions

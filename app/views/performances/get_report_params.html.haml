@@ -1,17 +1,14 @@
 # coding: utf-8
-%h1 Задайте параметры для просмотра KPI
+%h2 Задайте параметры для просмотра KPI
 
 .content
-  - form_for :report, :url => { :action => "show_report" }, :html => {:method => "get"} do 
+  - form_for :report, :url => { :action => "get_report_params_2" }, :html => {:method => "get"} do 
     %table
       %tr
         %th= "Период:"
         %td= select :report_params, "period_id", Period.all.collect {|p| [ p.description, p.id ] }
       %tr
-        %th= "Подразделение:"
-        %td= select :report_params, "division_id", BranchOfBank.all.collect {|d| [ d.name, d.id ] }
-      %tr
         %th= "Шаблон:"
         %td= select :report_params, "direction_id", Direction.order(:name).collect {|o| [ o.name, o.id ] }
             
-    = submit_tag "Показать KPI"
+    = submit_tag "Продолжить"
