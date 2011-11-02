@@ -2,7 +2,7 @@
 class PerformancesController < ApplicationController
   PLAN_OWNER = 'RPK880508'
   FACT_OWNER = 'SR_BANK'
-  FIN_OWNER = 'FIN'
+  FIN_OWNER  = 'FIN'
   def index
     @performances = Performance.order(:period_id, :direction_id, :division_id, :block_id, :factor_id)
   end
@@ -22,6 +22,11 @@ class PerformancesController < ApplicationController
     @direction = Direction.find params[:direction_id]
     @period = Period.find params[:period_id]
   end
+
+  def get_report_worker
+    @direction = Direction.find params[:direction_id]
+    @period = Period.find params[:period_id]
+  end
   
   def get_report_params_2
     direction = Direction.find params[:report_params][:direction_id]
@@ -31,6 +36,9 @@ class PerformancesController < ApplicationController
           :report_params => {:period_id => params[:report_params][:period_id], 
                              :division_id =>  '1', 
                              :direction_id => direction.id}
+      when 4 then # by worker
+        redirect_to :action => :get_report_worker, :period_id => params[:report_params][:period_id],
+                             :direction_id => direction.id                             
       else # divisions and regions
         redirect_to :action => :get_report_division, :direction_id => direction.id, 
           :period_id => params[:report_params][:period_id]
@@ -75,11 +83,15 @@ class PerformancesController < ApplicationController
   def calc_kpi
     if params[:report_params][:worker_id]
       w = Worker.select('code_division, lastname, firstname, soname').where('id_emp=?',params[:report_params][:worker_id]).first
+      fullname = w.lastname.to_utf+' '+w.firstname.to_utf+' '+w.soname.to_utf
       code_division = w.code_division[0,3]
       d = BranchOfBank.where("code = ?",code_division).first
       fd_division_id = d.id
+      worker_id = params[:report_params][:worker_id]
     else
       fd_division_id = params[:report_params][:division_id]
+      worker_id = 0
+      fullname = ''
     end
     
     direction = Direction.find params[:direction_id]
@@ -94,9 +106,9 @@ class PerformancesController < ApplicationController
             plan = 0
             fact = 0
           else
-            plan = get_plan period, params[:report_params][:division_id], f.id
+            plan = get_plan period, fd_division_id, f.id, worker_id
             plan = plan ? plan : 0
-            fact = get_fact odb_connection, odb_division_ids, f.id, period
+            fact = get_fact odb_connection, odb_division_ids, f.id, period, fd_division_id
             fact = (fact ? fact : 0)
           end
           bw = b.block_weights.last
@@ -123,37 +135,51 @@ class PerformancesController < ApplicationController
             percent = ((plan and (plan != 0))  ? 100*fact.to_f/plan.to_f : 0)
           end
           kpi = rate*percent
-          save_kpi params[:period_id],
-            params[:report_params][:division_id], 
-            params[:direction_id],
-            b.id, f.id, rate, plan, fact, percent, kpi
+          save_kpi period.id,
+            fd_division_id, 
+            direction.id,
+            b.id, f.id,
+            worker_id,
+            fullname,
+            rate, plan, fact, percent, kpi
         end
       end
     end
     odb_connection.logoff
     redirect_to :action => :show_report, 
       :report_params => {:period_id => params[:period_id], 
-      :division_id =>  params[:report_params][:division_id], 
+      :division_id =>  fd_division_id, 
       :direction_id => params[:direction_id]}
   end
     
   def show_report
+    if params[:report_params][:worker_id]
+      w = Worker.select('code_division, lastname, firstname, soname').where('id_emp=?',params[:report_params][:worker_id]).first
+      fullname = w.lastname.to_utf+' '+w.firstname.to_utf+' '+w.soname.to_utf
+      code_division = w.code_division[0,3]
+      d = BranchOfBank.where("code = ?",code_division).first
+      fd_division_id = d.id
+      worker_id = params[:report_params][:worker_id]
+    else
+      if params[:division_id]
+        fd_division_id = params[:division_id]
+      else  
+        fd_division_id = params[:report_params][:division_id]
+      end
+      worker_id = 0
+      fullname = ''
+    end
     if params[:period_id]
       period_id = params[:period_id]
     else  
       period_id = params[:report_params][:period_id]
-    end
-    if params[:division_id]
-      division_id = params[:division_id]
-    else  
-      division_id = params[:report_params][:division_id]
     end
     if params[:direction_id]
       direction_id = params[:direction_id]
     else  
       direction_id = params[:report_params][:direction_id]
     end
-    get_kpi period_id, division_id, direction_id
+    get_kpi period_id, fd_division_id, direction_id, worker_id
     if @performances.size == 0
       flash_error :kpi_not_ready
       redirect_to :action => 'get_report_params'
@@ -219,8 +245,8 @@ class PerformancesController < ApplicationController
   def get_codes division_id
     codes = []
     if division_id == '1' # whole the bank
-      codes << '000'
-      BranchOfBank.select(:code).where("code > '000' and code < '900' and open_date is not null").collect { 
+#      codes << '000'
+      BranchOfBank.select(:code).where("code >= '000' and code < '900' and open_date is not null").collect { 
         |d| codes << d.code
       }  
     else
@@ -261,6 +287,15 @@ class PerformancesController < ApplicationController
     return @plan ? @plan.plan : 0
   end
   
+  def get_plan_from_values_by_worker period_id, worker_id, factor_id
+    p = Value.select('sum(factor_value) as plan').where("period_id=? and worker_id=? and factor_id=? and type_id=1", period_id, worker_id, factor_id).first  
+    return p.plan
+  end
+  
+  def collect_plan_from_values_by_workers period_id, division_id, collect_factor_id
+    p = Value.select('sum(factor_value) as plan').where("period_id=? and division_id=? and factor_id=? and type_id=1", period_id, division_id, collect_factor_id).first  
+    return p.plan
+  end
   def get_plan_from_values period_id, division_id, factor_id
     p = Value.select('sum(factor_value) as plan').where("period_id=? and division_id=? and factor_id=? and type_id=1", period_id, division_id, factor_id).first  
     return p.plan
@@ -291,7 +326,7 @@ class PerformancesController < ApplicationController
     return plan    
   end
   
-  def get_plan period, division_id, factor_id
+  def get_plan period, division_id, factor_id, worker_id
     codes = []
     codes = get_codes division_id
     factor = Factor.find factor_id
@@ -307,8 +342,14 @@ class PerformancesController < ApplicationController
         if article.name == 'get_plan_from_values'
           return get_plan_from_values period.id, division_id, factor_id
         end
+        if article.name == 'get_plan_from_values_by_worker'
+          return get_plan_from_values_by_worker period.id, worker_id, factor_id
+        end
         if article.name == 'get_average_plan' 
           return get_average_plan period, division_id, article.source_name
+        end
+        if article.name == 'collect_plan_from_values_by_workers'
+          return collect_plan_from_values_by_workers period.id, division_id, article.source_name 
         end
         if article.name[0,2] == 'BP'  # get plan  from BP-tables
           if article.name.include?('+')
@@ -328,6 +369,9 @@ class PerformancesController < ApplicationController
               " where s.namepp in ("+a+")"
           end
         else
+          if article.source_name > '' # source_name holds codes of divisions for calculating
+            codes = article.source_name.split(',')
+          end
           s = build_sql_for_results period.id, codes, article.name
         end
         @plan = PlanDictionary.find_by_sql(s).last
@@ -400,20 +444,20 @@ class PerformancesController < ApplicationController
     return f.fact
   end
 
-  def get_fact odb_connect, odb_division_ids, factor_id, period
+  def get_fact odb_connect, odb_division_ids, factor_id, period, fd_division_id
     
     Factor.find(factor_id).articles.collect { |a|
       if a.action_id == 2 and a.name == 'EXCLUSION' # get fin res fact from FD
         return get_fin_res_fact(period, 
-          params[:report_params][:division_id], a.source_name )        
+          fd_division_id, a.source_name )        
       end
 
       if a.action_id == 2 and a.name == 'BALANCES'
-        return get_balances_fact period, params[:report_params][:division_id]
+        return get_balances_fact period, fd_division_id
       end
       
       if a.action_id == 2 and a.name == 'get_fact_from_values' 
-        return get_fact_from_values period.id, params[:report_params][:division_id], factor_id
+        return get_fact_from_values period.id, fd_division_id, factor_id
       end  
 
       if a.action_id == 2 # fact
@@ -597,11 +641,11 @@ class PerformancesController < ApplicationController
     query = "select ("+get_fact_from_result(period, codes)+
       ") as fact from "+PLAN_OWNER+".directory d "+
       get_joins_for_result(codes)+
-      "where d.namepp in ('"+article+"')"
+      " where d.namepp in ('"+article+"')"
     return PlanDictionary.find_by_sql(query).first.fact
   end
   
-  def save_kpi period_id, division_id, direction_id, block_id, factor_id, 
+  def save_kpi period_id, division_id, direction_id, block_id, factor_id, worker_id, fullname, 
     rate, plan, fact, percent, kpi 
     @performance = Performance.new
     @performance.period_id = period_id
@@ -609,6 +653,8 @@ class PerformancesController < ApplicationController
     @performance.direction_id = direction_id
     @performance.block_id = block_id
     @performance.factor_id = factor_id
+    @performance.employee_id = worker_id
+    @performance.fullname = fullname
     @performance.rate = rate
     @performance.plan = plan
     @performance.fact = fact
@@ -618,7 +664,7 @@ class PerformancesController < ApplicationController
     @performance.save
   end
   
-  def get_kpi period_id, division_id, direction_id
+  def get_kpi period_id, division_id, direction_id, worker_id
     @performances = Performance.where("period_id=? and division_id=? and direction_id=? and calc_date in (
       select max(calc_date) from performances where period_id=? and division_id=? and direction_id=? 
       group by factor_id order by factor_id)",

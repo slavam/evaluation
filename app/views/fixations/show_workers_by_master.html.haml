@@ -1,0 +1,9 @@
+# coding: utf-8
+%h2 Список сотрудников, присоединенных к #{@master.lastname.to_utf}
+.content
+  %table.data
+    %tr
+      %th Фамилия
+    - for w in @slaves
+      %tr
+        %td= w.lastname

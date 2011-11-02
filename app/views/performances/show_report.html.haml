@@ -1,5 +1,7 @@
 # coding: utf-8
-%h2 Оценка эффективности деятельности 
+%h2 Оценка эффективности деятельности
+- if @performances[0].direction.level_id == 4 
+  %h3 Сотрудник: #{@performances[0].fullname}  
 %h3 Отделение: #{@performances[0].division.name}
 %h3 Шаблон: #{@performances[0].direction.name}
 %h3 Период: #{@performances[0].period.description}  

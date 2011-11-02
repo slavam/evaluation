@@ -1,10 +1,10 @@
 # coding: utf-8
-%h2 Выберите сотрудника для расчета KPI 
+%h2 Выберите сотрудника для просмотра KPI 
 %h4 Период: #{@period.description}
 %h4 Направление: #{@direction.short_name}
 
 .content
-  - form_for :report_params, :url => {:action => "calc_kpi"}, :html => {:method => "get"} do 
+  - form_for :report_params, :url => {:action => "show_report"}, :html => {:method => "get"} do 
     %table
       %tr
         %th Сотрудник:
@@ -12,4 +12,4 @@
         %td= hidden_field_tag :direction_id, @direction.id
         %td= hidden_field_tag :period_id, @period.id
     %br    
-    = submit_tag "Расчитать KPI"
+    = submit_tag "Показать KPI"

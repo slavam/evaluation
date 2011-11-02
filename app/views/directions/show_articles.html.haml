@@ -1,5 +1,7 @@
 # coding: utf-8
-%h3 Статьи показателя "#{@factor.factor_description.short_name}" блока #{link_to @factor.block.block_description.short_name, :action => "show_eigen_factors", :id => @factor.block_id} шаблона #{link_to @factor.block.direction.name, :action => "show_eigen_blocks", :id => @factor.block.direction.id}
+%h2 Статьи показателя "#{@factor.factor_description.short_name}" 
+%h3 Блок: #{link_to @factor.block.block_description.short_name, :action => "show_eigen_factors", :id => @factor.block_id} 
+%h3 Шаблон: #{link_to @factor.block.direction.name, :action => "show_eigen_blocks", :id => @factor.block.direction.id}
 
 .content
   %table.data

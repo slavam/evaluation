@@ -24,13 +24,18 @@ Evaluation::Application.routes.draw do
       get :show_eigen_blocks, :show_eigen_factors, :show_articles
     end
   end
-#  resources :workers
+
+  resources :fixations do
+    collection do
+      get :get_master, :show_workers_by_master
+    end
+  end
   resources :branch_of_banks
   resources :performances do
     collection do
       get :get_report_params, :get_report_params_2, :get_report_division, 
         :report_print, :get_calc_params, :get_calc_params_2, :get_calc_division, 
-        :calc_kpi, :show_report, :show_values, :get_calc_worker
+        :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker
 #, :calc_worker_kpi
     end
   end

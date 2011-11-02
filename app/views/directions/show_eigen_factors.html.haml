@@ -1,5 +1,6 @@
 # coding: utf-8
-%h2 Показатели блока "#{@block.block_description.short_name}" шаблона "#{@block.direction.short_name}" 
+%h2 Показатели блока "#{@block.block_description.short_name}" 
+%h3 Шаблон: #{@block.direction.short_name} 
 %h4 Примечание: для удаления показателя обнулите его вес
 .content
   %table.data
@@ -15,7 +16,7 @@
           - fw = f.factor_weights.last
           %td= fw.weight
           %td= fw.description
-          %td= link_to "Ввод данных", :controller => 'values', :action => @block.direction.level_id == 3 ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => f
+          %td= link_to "Ввод данных", :controller => 'values', :action => (@block.direction.level_id < 4) ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => f
           - v = Value.where('factor_id=?',f.id)
           - if v.size > 0
             %td= link_to "Просмотр", :controller => 'values', :action => 'show_values_by_factor', :factor_id => f 

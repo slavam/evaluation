@@ -1,5 +1,7 @@
 # coding: utf-8
-%h2 Значения показателя "#{@factor.factor_description.short_name}" 
+%h2 Значения показателя "#{@factor.factor_description.short_name}"
+%h3 Блок: #{link_to @factor.block.block_description.short_name, :controller => 'directions', :action => "show_eigen_factors", :id => @factor.block_id}
+%h3 Шаблон: #{link_to @factor.block.direction.name, :controller => 'directions', :action => "show_eigen_blocks", :id => @factor.block.direction.id}
 .content
   %table.data
     %tr
@@ -20,4 +22,4 @@
         %td= link_to 'Удалить', :action => 'delete_value', :value_id => v.id, :confirm => "Do you really want to delete value?"
 %br	
 .actions
-  = link_to 'Добавить значение', :action => @factor.block.direction.level_id == 3 ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => @factor
+  = link_to 'Добавить значение', :action => @factor.block.direction.level_id < 4 ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => @factor

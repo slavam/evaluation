@@ -44,6 +44,9 @@ class ValuesController < ApplicationController
       @value.fullname = w.lastname.to_utf+' '+w.firstname.to_utf+' '+w.soname.to_utf
     end
     @factor = Factor.find params[:factor_id]
+    if params[:division_id]
+      @value.division_id = 1
+    end
     if not @value.save
       if @value.worker_id
         render :add_data_by_worker
