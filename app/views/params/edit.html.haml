@@ -1,0 +1,9 @@
+%h1 Изменить параметр
+.content
+  - form_for @parameter do |form|
+    %table.card
+      %tr
+        %th Значение:
+        %td= form.text_field :value, :size => 50
+    %br
+    = submit_tag 'Сохранить'

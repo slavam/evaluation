@@ -82,7 +82,7 @@
         data: #{ 
           val = []
           for vv in @values do 
-            val << vv.plan 
+            val << vv.plan.to_f 
           end  
           val}
       },
@@ -93,7 +93,7 @@
         data: #{ 
           val = []
           for vv in @values do 
-            val << vv.fact 
+            val << vv.fact.to_f 
           end  
           val}
       }]

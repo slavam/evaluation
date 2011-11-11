@@ -13,7 +13,7 @@
           %td= f.factor_description.short_name
           - @w = f.factor_weights.last
           %td= text_field :w, :weight, :index => f.id, :size => 5
-          %td= text_field :w, :description, :index => f.id, :size => 50
+          %td= text_field :w, :description, :index => f.id, :size => 20
       %br	
     = submit_tag "Сохранить"
         

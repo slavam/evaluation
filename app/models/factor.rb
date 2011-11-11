@@ -4,4 +4,5 @@ class Factor < ActiveRecord::Base
   has_many :factor_weights
   has_many :articles  
   has_many :performances
+  has_many :params
 end

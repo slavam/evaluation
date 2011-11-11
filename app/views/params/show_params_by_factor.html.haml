@@ -1,0 +1,18 @@
+# coding: utf-8
+%h2 Параметры формирования #{@action.id == 1 ? "плана" : "факта"} 
+%h3 Показатель: #{link_to @factor.factor_description.short_name, :controller => 'directions', :action => "show_articles", :id => @factor.id}
+%h3 Блок: #{link_to @factor.block.block_description.short_name, :controller => 'directions', :action => "show_eigen_factors", :id => @factor.block_id} 
+%h3 Шаблон: #{link_to @factor.block.direction.name, :controller => 'directions', :action => "show_eigen_blocks", :id => @factor.block.direction.id}
+ 
+.content
+  %table.data
+    %tr
+      %th Название
+      %th Значение
+    - for p in @parameters
+      %tr
+        %td= p.param_description.description
+        %td= p.value
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new_param', :factor_id => @factor, :action_id => @action         

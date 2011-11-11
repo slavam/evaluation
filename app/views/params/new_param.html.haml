@@ -1,0 +1,15 @@
+%h2 Новый параметр для формирования #{@action.id == 1 ? "плана" : "факта"} показателя #{@factor.factor_description.short_name} 
+.content
+  - form_for @parameter, :url => {:action => 'save_param'} do |form|
+    %table.card
+      %tr
+        %th Название:
+        %td= form.select :param_description_id, ParamDescription.all.collect {|pd| [ pd.description, pd.id ] }
+      %tr
+        %th Значение:
+        %td= form.text_field :value, :size => 50
+        %td= hidden_field_tag :factor_id, @factor.id
+        %td= hidden_field_tag :action_id, @action.id
+    %br
+  
+    = submit_tag "Сохранить"

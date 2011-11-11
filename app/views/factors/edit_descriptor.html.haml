@@ -1,0 +1,17 @@
+# coding: utf-8
+%h1 Изменение дескриптора 
+%h3 Показатель: #{@factor.factor_description.short_name}
+%h3 Блок: #{@factor.block.block_description.short_name} 
+%h3 Шаблон: #{@factor.block.direction.short_name} 
+ 
+.content
+  - form_for @factor do |form|
+    %table.data
+      %tr
+        %th План-дескриптор
+        %th Факт-дескриптор
+      %tr
+        %td= form.text_field :plan_descriptor, :size => 30
+        %td= form.text_field :fact_descriptor, :size => 30
+      %br	
+    = submit_tag "Сохранить"

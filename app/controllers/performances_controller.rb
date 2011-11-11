@@ -102,19 +102,19 @@ class PerformancesController < ApplicationController
     for b in direction.blocks do  
       for f in b.factors do
         if f.factor_weights.last.weight > 0.00001
-          if f.articles.nil? or f.articles.size==0
-            plan = 0
-            fact = 0
-          else
+#          if f.articles.nil? or f.articles.size==0
+#            plan = 0
+#            fact = 0
+#          else
             plan = get_plan period, fd_division_id, f.id, worker_id
             plan = plan ? plan : 0
-            fact = get_fact odb_connection, odb_division_ids, f.id, period, fd_division_id
+            fact = get_fact odb_connection, odb_division_ids, f.id, period, fd_division_id, worker_id
             fact = (fact ? fact : 0)
-          end
+#          end
           bw = b.block_weights.last
           fw = f.factor_weights.last
           rate = bw.weight * fw.weight
-          if f.factor_description.short_name == "% проблемности"
+          if f.factor_description.short_name == "% проблемности" # only for IB
             case fact
               when 0..0.000001 then
                 percent = 120
@@ -135,6 +135,9 @@ class PerformancesController < ApplicationController
             percent = ((plan and (plan != 0))  ? 100*fact.to_f/plan.to_f : 0)
           end
           kpi = rate*percent
+         
+          kpi = 200 if kpi > 200
+          
           save_kpi period.id,
             fd_division_id, 
             direction.id,
@@ -221,7 +224,7 @@ class PerformancesController < ApplicationController
     return  "select ("+get_plans(p.start_date.beginning_of_year, p.end_date, codes)+
       ") as plan from "+PLAN_OWNER+".directory d "+
       get_joins_for_result(codes)+
-      " where d.namepp in '"+article_name+"'"
+      " where d.namepp in ("+article_name+")"
     
   end
 
@@ -252,7 +255,7 @@ class PerformancesController < ApplicationController
     else
       division = BranchOfBank.find division_id
       if division.parent_id == 1 and not division.open_date.nil?
-        BranchOfBank.select(:code).where("parent_id=?", division_id).collect {|d| codes << d.code}
+        BranchOfBank.select(:code).where("parent_id=? and open_date is not null", division_id).collect {|d| codes << d.code}
       else
         codes << division.code
       end
@@ -320,7 +323,7 @@ class PerformancesController < ApplicationController
     sql = "
       select ("+get_delta_plan(period, codes)+")/2 as plan from "+
       PLAN_OWNER+".bp_sprav s "+ get_joins_for_bp(codes)+
-      " where namepp = '"+article_name+"'"
+      " where namepp = "+article_name
     @plan = PlanDictionary.find_by_sql(sql).last
     return @plan ? @plan.plan : 0
     return plan    
@@ -330,54 +333,101 @@ class PerformancesController < ApplicationController
     codes = []
     codes = get_codes division_id
     factor = Factor.find factor_id
-# this is wery hard code!
-    factor.articles.collect {|article|
-      if article.action_id == 1 # plan
-        if article.name == 'CONST' # return const value
-          return article.source_name.to_i
-        end
-        if article.name == 'BALANCES'
-          return get_balances_plan period, division_id
-        end
-        if article.name == 'get_plan_from_values'
-          return get_plan_from_values period.id, division_id, factor_id
-        end
-        if article.name == 'get_plan_from_values_by_worker'
-          return get_plan_from_values_by_worker period.id, worker_id, factor_id
-        end
-        if article.name == 'get_average_plan' 
-          return get_average_plan period, division_id, article.source_name
-        end
-        if article.name == 'collect_plan_from_values_by_workers'
-          return collect_plan_from_values_by_workers period.id, division_id, article.source_name 
-        end
-        if article.name[0,2] == 'BP'  # get plan  from BP-tables
-          if article.name.include?('+')
-            article.name.mb_chars[article.name.index('+'),1] = "', '"
-          end  
-          a = "'"+article.name+"'"
-          
-          if article.select_type_id == 1 # sum from start year
-            s = "select ("+get_months(period.start_date.beginning_of_year, period.start_date, codes)+
-              ") plan from "+PLAN_OWNER+".bp_sprav s "+
-              get_joins_for_bp(codes)+
-              " where s.namepp in ("+a+")"
-          else
-            s = "select ("+get_months(period.start_date, period.end_date, codes)+
+    if (not factor.plan_descriptor.nil?) and factor.plan_descriptor > ''
+      case factor.plan_descriptor
+        when 'get_plan_fin_res'
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 5).last.value
+          query = build_sql_for_results period.id, codes, article
+          @plan = PlanDictionary.find_by_sql(query).last
+          return @plan.plan
+        when 'get_plan_from_bp'  
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 4).last.value
+          query = "select ("+get_months(period.start_date, period.end_date, codes)+
             ") plan from "+PLAN_OWNER+".bp_sprav s "+
               get_joins_for_bp(codes)+
-              " where s.namepp in ("+a+")"
-          end
-        else
-          if article.source_name > '' # source_name holds codes of divisions for calculating
-            codes = article.source_name.split(',')
-          end
-          s = build_sql_for_results period.id, codes, article.name
-        end
-        @plan = PlanDictionary.find_by_sql(s).last
-        return @plan.plan
-      end
-    }
+              " where s.namepp in ("+article+")"
+          @plan = PlanDictionary.find_by_sql(query).last
+          return @plan.plan
+        when 'get_plan_const'  
+          return Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 8).last.value.to_i
+        when 'get_plan_from_values_by_worker'
+          return get_plan_from_values_by_worker period.id, worker_id, factor_id
+        when 'collect_plan_from_values_by_workers'
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 9).last.value
+          return collect_plan_from_values_by_workers period.id, division_id, article
+        when 'get_plan_average'
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 4).last.value
+          return get_average_plan period, division_id, article
+        when 'get_plan_from_values'
+          return get_plan_from_values period.id, division_id, factor_id
+        when 'get_plan_fin_res_by_divisions'
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 5).last.value
+          codes = Fixation.where("master_id=?", worker_id).last.addition.split(',')
+          query = build_sql_for_results period.id, codes, article
+          @plan = PlanDictionary.find_by_sql(query).last
+          return @plan.plan
+        when 'get_plan_balances'
+          return get_balances_plan period, division_id
+        when 'get_plan_from_res'  
+          codes = get_codes division_id
+          article = Param.where('factor_id=? and action_id=1 and param_description_id=?', factor.id, 5).last.value
+          query =  "select ("+get_plans(period.end_date, period.end_date, codes)+
+            ") as plan from "+PLAN_OWNER+".directory d "+
+            get_joins_for_result(codes)+
+            " where d.namepp in ("+article+")"
+          @plan = PlanDictionary.find_by_sql(query).last
+          return @plan.plan
+      end    
+    end
+#              RAILS_DEFAULT_LOGGER.info query+"++++++++++++++++++++++++++++"  
+# this is wery hard code!
+#    factor.articles.collect {|article|
+#      if article.action_id == 1 # plan
+#        if article.name == 'CONST' # return const value
+#          return article.source_name.to_i
+#        end
+#        if article.name == 'BALANCES'
+#          return get_balances_plan period, division_id
+#        end
+##        if article.name == 'get_plan_from_values'
+##          return get_plan_from_values period.id, division_id, factor_id
+##        end
+##        if article.name == 'get_plan_from_values_by_worker'
+##          return get_plan_from_values_by_worker period.id, worker_id, factor_id
+##        end
+#        if article.name == 'get_average_plan' 
+#          return get_average_plan period, division_id, article.source_name
+#        end
+#        if article.name == 'collect_plan_from_values_by_workers'
+#          return collect_plan_from_values_by_workers period.id, division_id, article.source_name 
+#        end
+#        if article.name[0,2] == 'BP'  # get plan  from BP-tables
+#          if article.name.include?('+')
+#            article.name.mb_chars[article.name.index('+'),1] = "', '"
+#          end  
+#          a = "'"+article.name+"'"
+#          
+#          if article.select_type_id == 1 # sum from start year
+#            s = "select ("+get_months(period.start_date.beginning_of_year, period.start_date, codes)+
+#              ") plan from "+PLAN_OWNER+".bp_sprav s "+
+#              get_joins_for_bp(codes)+
+#              " where s.namepp in ("+a+")"
+#          else
+#            s = "select ("+get_months(period.start_date, period.end_date, codes)+
+#            ") plan from "+PLAN_OWNER+".bp_sprav s "+
+#              get_joins_for_bp(codes)+
+#              " where s.namepp in ("+a+")"
+#          end
+#        else
+#          if (not article.source_name.nil?) and (article.source_name > '') # source_name holds codes of divisions for calculating
+#            codes = article.source_name.split(',')
+#          end
+#          s = build_sql_for_results period.id, codes, "'"+article.name+"'"
+#        end
+#        @plan = PlanDictionary.find_by_sql(s).last
+#        return @plan.plan
+#      end
+#    }
     return 0
 # column_names      
 #      p PlanDictionary.columns_hash.size.to_s+">>>>>>>>>>>>>>>>>>>>"
@@ -386,6 +436,8 @@ class PerformancesController < ApplicationController
 #      p @fact.attributes.sort.to_s+">>>>>>>>>>>>>>>>>>>>"
     
   end
+
+
 
   def get_months start_date, end_date, codes
     s_m = start_date.month
@@ -444,163 +496,397 @@ class PerformancesController < ApplicationController
     return f.fact
   end
 
-  def get_fact odb_connect, odb_division_ids, factor_id, period, fd_division_id
-    
-    Factor.find(factor_id).articles.collect { |a|
-      if a.action_id == 2 and a.name == 'EXCLUSION' # get fin res fact from FD
-        return get_fin_res_fact(period, 
-          fd_division_id, a.source_name )        
+  def get_fact_over period_id, fd_division_id, factor_id
+#    division_code = BranchOfBank.find(fd_division_id).code
+    codes = []
+    codes = get_codes fd_division_id
+    codes_as_str = codes.join(',')
+    businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 11).last.value
+    query = "
+select abs(sum(dfp.base_amount)) as base_amount_all
+  from "+FIN_OWNER+".credit_deposit_value dfp,
+    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree,
+    (SELECT d.id, d.name, d.code FROM "+FIN_OWNER+".division d
+          where d.fact=1 and d.code in ("+codes_as_str+")) div
+  where dfp.sr_currency_id like 3386
+    and dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
+    and dfp.division_id = div.id
+    and dfp.credit_deposit_factor_id =tree.id
+    and dfp.periods_id="+period_id.to_s
+    fact = PlanDictionary.find_by_sql(query).last
+    return fact.base_amount_all   
+  end
+  
+  def get_fact_deposit_by_day fd_division_id, period, factor_id
+    if fd_division_id == 1
+      s = " where "
+    else  
+      codes = []
+      codes = get_codes fd_division_id
+      codes_as_str = codes.join(',')
+      s = ", (SELECT d.id, d.name, d.code FROM "+FIN_OWNER+".division d
+          where d.fact=1 and d.code in ("+codes_as_str+")) div
+        where dfp.division_id = div.id and "
+    end
+    businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 11).last.value
+    query = "
+      select abs(sum(dfp.base_amount)) as base_amount_all
+        from "+FIN_OWNER+".credit_deposit_value dfp,
+        (SELECT ID FROM FIN.credit_deposit_factor t
+          CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =15) tree"+s+"
+          dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
+          and dfp.credit_deposit_factor_id =tree.id
+          and dfp.periods_id=(select id from fin.periods where date_from = TO_DATE('"+
+          period.end_date.to_s+"','yyyy-mm-dd'))"
+# RAILS_DEFAULT_LOGGER.info query+"++++++++++++++++++++++++++++"          
+    fact = PlanDictionary.find_by_sql(query).last
+    return fact.base_amount_all   
+  end
+  
+  def get_fact_current_accounts fd_division_id, period_id, factor_id
+    if fd_division_id == 1
+      s = " where "
+    else  
+      codes = []
+      codes = get_codes fd_division_id
+      codes_as_str = codes.join(',')
+      s = ", (SELECT d.id, d.name, d.code FROM "+FIN_OWNER+".division d
+          where d.fact=1 and d.code in ("+codes_as_str+")) div
+        where dfp.division_id = div.id and "
+    end
+    businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 11).last.value
+    query = "
+      select abs(sum(dfp.base_amount)) as base_amount_all
+        from "+FIN_OWNER+".credit_deposit_value dfp,
+    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =20) tree"+s+" 
+    dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
+    and dfp.credit_deposit_factor_id =tree.id
+    and dfp.periods_id="+period_id.to_s    
+    fact = PlanDictionary.find_by_sql(query).last
+    return fact.base_amount_all   
+  end
+  
+  def get_selected_fields start_date, end_date, codes
+    res = ''
+    y = start_date.year.to_s+"_"
+    s_d = start_date.month.to_s+'_'+start_date.day.to_s
+    e_d = end_date.month.to_s+'_'+end_date.day.to_s
+    codes.each {|c|
+      res = res + "(r"+c+".MONTH_"+y+e_d+" - r"+c+".MONTH_"+y+s_d+")+"
+    }  
+    return res[0,res.length-1]
+  end    
+  
+  def get_fact_from_res_by_interval fd_division_id, period, factor_id
+    codes = get_codes fd_division_id
+    article = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 5).last.value
+    end_date = period.end_date
+    start_date = period.start_date.prev_month.end_of_month
+    query = "select ("+get_selected_fields(start_date, end_date, codes)+
+      ") as fact from "+PLAN_OWNER+".directory d "+
+      get_joins_for_result(codes)+
+      " where d.namepp in ("+article+")"
+    return PlanDictionary.find_by_sql(query).first.fact
+  end
+# RAILS_DEFAULT_LOGGER.info query+"++++++++++++++++++++++++++++"       
+  
+  def get_fact odb_connect, odb_division_ids, factor_id, period, fd_division_id, worker_id
+    factor = Factor.find factor_id
+    if (not factor.fact_descriptor.nil?) and factor.fact_descriptor > ''
+      if factor.fact_descriptor == 'get_fact_fin_res'
+        codes = get_codes fd_division_id 
+        article = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 5).last.value
+        return get_fact_fin_res period, codes, article
       end
-
-      if a.action_id == 2 and a.name == 'BALANCES'
-        return get_balances_fact period, fd_division_id
+      if factor.fact_descriptor == 'get_fact_fin_res_by_divisions'
+        codes = Fixation.where("master_id=?", worker_id).last.addition.split(',')
+        article = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 5).last.value
+        return get_fact_fin_res period, codes, article
+      end
+      if factor.fact_descriptor == 'get_fact_from_values'
+        return get_fact_from_values period.id, fd_division_id, factor_id    
+      end
+      if factor.fact_descriptor == 'get_fact_balances'
+        return get_balances_fact period, fd_division_id    
+      end
+      if factor.fact_descriptor == 'get_fact_over_average'
+        return get_fact_over period.id, fd_division_id, factor_id
+      end
+      if factor.fact_descriptor == 'get_fact_deposit'
+        return get_fact_deposit_by_day fd_division_id, period, factor_id
+      end
+      if factor.fact_descriptor == 'get_fact_current_accounts'
+        return get_fact_current_accounts fd_division_id, period.id, factor_id
+      end
+      if factor.fact_descriptor == 'get_fact_from_res_by_interval'
+        return get_fact_from_res_by_interval fd_division_id, period, factor_id
       end
       
-      if a.action_id == 2 and a.name == 'get_fact_from_values' 
-        return get_fact_from_values period.id, fd_division_id, factor_id
-      end  
-
-      if a.action_id == 2 # fact
-        fact = 0
-        odb_division_ids.each {|division_id|
-          case a.name 
-            when 'get_count_transfer' then # Количество переводов за период 
-              sql = " 
-                declare
-                  l_res number(38,2);
-                begin "+
-                  FACT_OWNER+".vbr_kpi.get_count_transfer(
-                    TO_DATE('"+ period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'),
-                    TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+ 
-                    division_id.to_s+", :l_res);  
-                end; "     
-            when 'get_count_municipal' then # Количество коммунальных платежей за период 
-              sql = " 
-                declare
-                  l_res number(38,2);
-                begin "+
-                  FACT_OWNER+".vbr_kpi.get_count_municipal(TO_DATE('"+
-                    period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'), 
-                    TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+ 
-                    division_id.to_s+", :l_res);  
-                end; "
-            when 'get_count_depobox' then #Количество депозитарных ячеек на дату
-              sql = " 
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,2);
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('"+a.source_name+"'); "+
-                  FACT_OWNER+".vbr_kpi.get_count_depobox(TO_DATE('"+ 
-                    period.end_date.to_s+"','yyyy-mm-dd'),"+ 
-                    division_id.to_s+", m_macro_table, :l_res); 
-                end; "     
-            when 'get_sum_nt_cash' then # доходы по валютообменным операциям 
-              sql = "
-                declare
-                  l_res number(38,2);
-                begin "+
-                  FACT_OWNER+".vbr_kpi.get_sum_nt_cash(TO_DATE('"+
-                    period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'),
-                    TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+", :l_res);
-                end; " 
-            when 'get_count_term' then # Количество терминальных устройств на дату 
-              sql = " 
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,2);
-                begin
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('"+a.source_name+"'); "+
-                  FACT_OWNER+".vbr_kpi.get_count_term(TO_DATE('"+
-                    period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+", m_macro_table, :l_res);
-                end; "      
-            when 'get_pers_card_over' then # Процент покрытия зарплатных карт лимитами на дату 
-                sql = "
-                  declare
-                    l_res number(38,2);
-                  begin "+
-                    FACT_OWNER+".vbr_kpi.get_pers_card_over(TO_DATE('"+ 
-                      period.end_date.to_s+"','yyyy-mm-dd'),"+
-                      division_id.to_s+", :l_res);
-                  end; "
-#                RAILS_DEFAULT_LOGGER.info sql+"++++++++++++++++++++++++++++"
-          when 'get_count_card' then # Количество карт на дату 
-              sql = "
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,2);
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('"+a.source_name+"'); "+
-                  FACT_OWNER+".vbr_kpi.get_count_card(TO_DATE('"+ 
-                    period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+", m_macro_table, :l_res);
-                end; "  
-            when 'get_rest_by_ct_type' then # депозитный портфель
-              sql = "
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,2);
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('I'); "+
-                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                    period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+", 'DEPOSIT_DOCUMENT', m_macro_table, l_res);
-                  :l_res := l_res * (-1); 
-                end; "  
-                # deposite have negative value. Need * (-1)
-            when 'get_pers_card_ick' then # процент охвата зарплатных карт кредитными
-              sql = "
-                declare
-                  l_res number(38,2);
-                begin "+
-                  FACT_OWNER+".vbr_kpi.get_pers_card_ick(TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+", :l_res);
-                end; "  
-            when 'get_pers_pr_by_ct_type' then  # % проблемности  
-              sql = " 
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,5);
-                  p_amount_all number(38,2);
-                  p_amount_expire number(38,2);
-                begin "+program_names_to_array(a.source_name)+
-                  FACT_OWNER+".vbr_kpi.get_pers_pr_by_ct_type(TO_DATE('"+ 
+      fact = 0
+      query = ''
+      odb_division_ids.each {|division_id|
+        case factor.fact_descriptor
+          when 'get_fact_problem_pers'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,5);
+                p_amount_all number(38,2);
+                p_amount_expire number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_pers_pr_by_ct_type(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+",m_macro_table, :l_res, p_amount_all, p_amount_expire);
+              end; "     
+          when 'get_fact_from_rest'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+",'CREDIT_DOCUMENT',m_macro_table, :l_res);
+              end; "     
+          when 'get_fact_transfer'
+            query = " 
+              declare
+                l_res number(38,2);
+              begin "+
+                FACT_OWNER+".vbr_kpi.get_count_transfer(TO_DATE('"+ 
+                period.start_date.beginning_of_year.to_s+
+                "','yyyy-mm-dd'), TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+ 
+                division_id.to_s+", :l_res);  
+              end; "
+          when 'get_fact_depobox'    
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_count_depobox(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+ 
+                division_id.to_s+", m_macro_table, :l_res); 
+              end; "     
+          when 'get_fact_cash'
+            query = " 
+              declare
+                l_res number(38,2);
+              begin "+
+                FACT_OWNER+".vbr_kpi.get_sum_nt_cash(TO_DATE('"+
+                period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'),
+                TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", :l_res);
+              end; " 
+          when 'get_fact_municipal'
+            query = " 
+              declare
+                l_res number(38,2);
+              begin "+
+                FACT_OWNER+".vbr_kpi.get_count_municipal(TO_DATE('"+
+                period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'), 
+                TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+ 
+                division_id.to_s+", :l_res);  
+              end; "
+          when 'get_fact_deposit_volume'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", 'DEPOSIT_DOCUMENT', m_macro_table, l_res);
+                :l_res := l_res * (-1); 
+              end; "  
+              # deposite have negative value. Need * (-1)
+          when 'get_fact_card_count'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_count_card(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", m_macro_table, :l_res);
+              end; "  
+          when 'get_fact_card_over'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_pers_card_over(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", m_macro_table, :l_res);
+              end; "
+          when 'get_fact_card_ick' then # процент охвата зарплатных карт кредитными
+            query = " 
+              declare
+                l_res number(38,2);
+              begin "+
+                FACT_OWNER+".vbr_kpi.get_pers_card_ick(TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'),"+
+                  division_id.to_s+", :l_res);
+              end; "  
+          when 'get_count_term' then # Количество терминальных устройств на дату 
+            terminal_type = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 10).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(terminal_type)+
+                FACT_OWNER+".vbr_kpi.get_count_term(TO_DATE('"+
                   period.end_date.to_s+"','yyyy-mm-dd'),"+
-                  division_id.to_s+",m_macro_table, :l_res, p_amount_all, p_amount_expire);
-                end; "     
-#              RAILS_DEFAULT_LOGGER.info sql+"++++++++++++++++++++++++++++"  
-            else  # Получение суммы остатков по счету REST на дату, по отделению и по списку кодов продуктов
-              sql = " 
-                declare
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  l_res number(38,2);
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('"+a.name+"');"+
-                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                    period.end_date.to_s+"','yyyy-mm-dd'),"+
-                    division_id.to_s+",'CREDIT_DOCUMENT',m_macro_table, :l_res);
-                end; "     
-          end  
-          if sql > ''
-            plsql = odb_connect.parse(sql)
-            plsql.bind_param(':l_res', nil, Float) # Fixnum 
-            plsql.exec
-            fact = fact+(plsql[':l_res'] ? plsql[':l_res'] : 0)
-            plsql.close
-          end
-        }
-        return fact
-      end 
-    }
+                  division_id.to_s+", m_macro_table, :l_res);
+              end; "      
+          when 'get_fact_open_accounts'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", m_macro_table, :l_res);
+              end; "
+=begin            
+>>Выполнение плана по количеству открытых счетов на отчетную дату
+открытые текущие счета ИБ - IST
+в т.ч. ISTG - гривна
+       ISTP - пенсионные счета
+       IST$ - валютные счета
+
+открытые текущие счета КБ - KST
+в т.ч. KSTG - гривна
+       KST$ - валютные счета
+       KZP  - зарплатные проекты
+       KCOLL - договора инкассации
+
+открытые текущие счета бизнеса Z - ZKST
+в т.ч. ZKSTG - гривна
+       ZKST$ - валютные счета
+       ZKZP  - зарплатные проекты 
+=end  
+          when 'get_fact_from_rest_average'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", 'DEPOSIT_DOCUMENT', m_macro_table, :l_res);
+              end; "
+          when 'get_fact_enroll_salary'
+            program_names = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 6).last.value
+            query = " 
+              declare
+                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                l_res number(38,2);
+                l_res2 number(38,2);
+              begin "+program_names_to_array(program_names)+
+                FACT_OWNER+".vbr_kpi.get_sum_enroll_salary(TO_DATE('"+ 
+                period.start_date.to_s+"','yyyy-mm-dd'), TO_DATE('"+ 
+                period.end_date.to_s+"','yyyy-mm-dd'),"+
+                division_id.to_s+", m_macro_table, :l_res, l_res2);
+              end; "
+=begin
+--Объем и количество зачислений по зарплатным проектам (операция -  CARD_ENROLL_SALARY)
+--Полубенцев В.В. 04.11.2011
+procedure get_sum_enroll_salary(p_date1 date,
+                           p_date2 date,
+                           p_division_id pls_integer,
+                           v_contract_type_code t_str_table,
+                           result out number,
+                           cnt  out number)
+
+
+Типы контрактов для этой процедуры:
+KZPK - коммерческие предприятия
+KZPB0 - бюджетники
+KZPK - студенческие 
+=end
+=begin
+>>Выполнение плана по средним остаткам на текущих счетах
+
+--Получение суммы средних остатков по счету REST тарифного договора на дату, по отделению и по списку
+--кодов продуктов
+--Полубенцев В.В. 04.11.2011
+procedure get_rest_by_ct_type(p_date1 date,
+                              p_date2 date,
+                              p_division_id pls_integer,
+                              v_contract_type_code t_str_table,
+                              result out number)
+
+Параметры кодов продуктов аналогичны предыдущей процедуре
+=end
+=begin
+--Объем и количество по операциям выдачи кредитов
+declare
+  m_macro_table sr_bank.t_str_table := sr_bank.t_str_table();
+  l_res1 number(38,2);
+  l_res2 number(38,2);
+begin
+  m_macro_table.extend;
+  m_macro_table(1) := sr_bank.T_STR_ROW('KK');
+  sr_bank.vbr_kpi.get_sum_cred_out(TO_DATE('2011-01-01','yyyy-mm-dd'),
+  TO_DATE('2011-09-30','yyyy-mm-dd'), 63, m_macro_table, l_res2, l_res2);
+  sr_bank.p_exception.raise_common_except('_-'||l_res1||'_-'||l_res2||'=-_');
+end;  
++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++
+>>Выполнение плана по эмиссии корпоративных карт
+
+Решается процедурой get_count_card с кодом продукта KCC
++++++++++++++++++++++++++++++++++++++
+>>Охват активных счетов 2605 установленными овердрафтами
+
+Переделал процедуру get_pers_card_over, добавил параметром код продукта
+Для корпоративных карт (2605) - код продукта KCC
++++++++++++++++++++++++++++++++++++++
+>>Выполнение плана по средним остаткам на текущих счетах
+
+--Получение суммы средних остатков по счету REST тарифного договора на дату, по отделению и по списку
+--кодов продуктов
+--Полубенцев В.В. 04.11.2011
+procedure get_rest_by_ct_type(p_date1 date,
+                              p_date2 date,
+                              p_division_id pls_integer,
+                              v_contract_type_code t_str_table,
+                              result out number)
+
+Параметры кодов продуктов аналогичны предыдущей процедуре
++++++++++++++++++++++++++++++++++++++
+>>Выполнение плана по депозитному портфелю
+
+Если имеются в виду Объемы по депозитному портфелю пользуйтессь процедурой:
+get_rest_by_ct_type, с параметром  p_cdt_code='DEPOSIT_DOCUMENT' 
+=end
+        end
+        if query > ''
+          plsql = odb_connect.parse(query)
+          plsql.bind_param(':l_res', nil, Float) # Fixnum 
+          plsql.exec
+          fact = fact+(plsql[':l_res'] ? plsql[':l_res'] : 0)
+          plsql.close
+        end
+      }
+      return fact
+    end
+
     return 0
   end
+#              RAILS_DEFAULT_LOGGER.info sql+"++++++++++++++++++++++++++++"  
 
   def get_joins_for_result codes
     res = ''
@@ -633,6 +919,17 @@ class PerformancesController < ApplicationController
     }  
     return res[0,res.length-1]
   end  
+
+  def get_fact_fin_res period, codes, article
+#  get fact from FD not ODB    
+    query = "select ("+get_fact_from_result(period, codes)+
+      ") as fact from "+PLAN_OWNER+".directory d "+
+      get_joins_for_result(codes)+
+      " where d.namepp in ("+article+")"
+# RAILS_DEFAULT_LOGGER.info query+"++++++++++++++++++++++++++++"       
+    return PlanDictionary.find_by_sql(query).first.fact
+  end
+  
   
   def get_fin_res_fact period, division_id, article
 #  get fact from FD not ODB    
@@ -641,7 +938,7 @@ class PerformancesController < ApplicationController
     query = "select ("+get_fact_from_result(period, codes)+
       ") as fact from "+PLAN_OWNER+".directory d "+
       get_joins_for_result(codes)+
-      " where d.namepp in ('"+article+"')"
+      " where d.namepp in ("+article+")"
     return PlanDictionary.find_by_sql(query).first.fact
   end
   

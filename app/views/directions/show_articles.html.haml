@@ -1,21 +1,42 @@
 # coding: utf-8
-%h2 Статьи показателя "#{@factor.factor_description.short_name}" 
+%h2 Показатель "#{@factor.factor_description.short_name}" 
 %h3 Блок: #{link_to @factor.block.block_description.short_name, :action => "show_eigen_factors", :id => @factor.block_id} 
 %h3 Шаблон: #{link_to @factor.block.direction.name, :action => "show_eigen_blocks", :id => @factor.block.direction.id}
 
 .content
   %table.data
     %tr
-      %th Обозначение
-      %th Формирует
-      %th Тип отбора данных
-      %th Параметры
-    - for a in @factor.articles
-      %tr
-        %td= a.name
-        %td= a.action.name
-        %td= a.select_type.name
-        %td= a.source_name
+      %th Вес:
+      %td= @factor.factor_weights.last.weight
+    %tr  
+      %th Описание:
+      %td= @factor.factor_weights.last.description
+    %tr  
+      %th План-дескриптор: 
+      - if (@factor.plan_descriptor == 'get_plan_from_values')
+        %td= link_to 'get_plan_from_values', :controller => 'values', :action => 'show_values_by_factor', :factor_id => @factor.id
+      - else
+        %td= @factor.plan_descriptor.nil? ? '' : (link_to @factor.plan_descriptor, :controller => 'params', :action => 'show_params_by_factor', :factor_id => @factor.id, :action_id => 1 )
+      - for p in @factor.params.where('action_id=1')
+        %tr
+          %td{:colspan => 3}
+          %td= p.param_description.description
+          %td= link_to p.value, :controller => 'params', :action => 'edit', :id =>p.id
+          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy', :id =>p.id
+    %tr  
+      %th Факт-дескриптор:
+      - if (@factor.fact_descriptor == 'get_fact_from_values')
+        %td= link_to 'get_fact_from_values', :controller => 'values', :action => 'show_values_by_factor', :factor_id => @factor.id
+      - else
+        %td= @factor.fact_descriptor.nil? ? '' : (link_to @factor.fact_descriptor, :controller => 'params', :action => 'show_params_by_factor', :factor_id => @factor.id, :action_id => 2 )
+      - for p in @factor.params.where('action_id=2')
+        %tr
+          %td{:colspan => 3}
+          %td= p.param_description.description
+          %td= link_to p.value, :controller => 'params', :action => 'edit', :id =>p.id
+          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy', :id =>p.id
 %br	
 .actions
-  = link_to 'Добавить', :action => 'new_article', :controller => 'articles', :factor_id => @factor 
+%br  
+  = link_to "Редактировать дескрипторы", :controller => 'factors', :action => 'edit_descriptor', :id => @factor
+  -#= link_to 'Добавить', :action => 'new_article', :controller => 'articles', :factor_id => @factor 

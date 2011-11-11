@@ -9,8 +9,8 @@ Evaluation::Application.routes.draw do
   end
   resources :factors do
     collection do
-      get :new_factor, :edit_weights
-      post :save_weights, :save_updated_weights
+      get :new_factor, :edit_weights, :edit_descriptor
+      post :save_weights, :save_updated_weights, :save_descriptor
     end
   end
   resources :factor_descriptions
@@ -74,6 +74,15 @@ Evaluation::Application.routes.draw do
       post :save_article
     end
   end
+
+  resources :params do
+    collection do
+      get :show_params_by_factor, :new_param, :destroy
+      post :save_param
+    end
+  end
+
+  resources :param_descriptions
 
   # Sample of regular route:
   #   match 'products/:id' => 'catalog#view'

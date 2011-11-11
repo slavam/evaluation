@@ -1,6 +1,6 @@
 # coding: utf-8
 %h2 Показатели блока "#{@block.block_description.short_name}" 
-%h3 Шаблон: #{@block.direction.short_name} 
+%h3 Шаблон: #{link_to @block.direction.short_name, :action => "show_eigen_blocks", :id => @block.direction.id}
 %h4 Примечание: для удаления показателя обнулите его вес
 .content
   %table.data
@@ -8,18 +8,13 @@
       %th Название
       %th Вес
       %th Описание
-      %th 
-    - for f in @block.factors
+    - for f in @factors
       - if f.factor_weights.last.weight > 0.00001
         %tr
           %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
           - fw = f.factor_weights.last
           %td= fw.weight
           %td= fw.description
-          %td= link_to "Ввод данных", :controller => 'values', :action => (@block.direction.level_id < 4) ? 'add_data_by_division' : 'add_data_by_worker', :factor_id => f
-          - v = Value.where('factor_id=?',f.id)
-          - if v.size > 0
-            %td= link_to "Просмотр", :controller => 'values', :action => 'show_values_by_factor', :factor_id => f 
 %br	
 .actions
   = link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block

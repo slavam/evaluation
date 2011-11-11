@@ -1,0 +1,12 @@
+%h1
+  = submit
+  параметр
+.content
+  - form_for @param_description do |form|
+    %table.card
+      %tr
+        %th Название
+        %td= form.text_field :description, :size => 50
+    %br
+  
+    = submit_tag submit

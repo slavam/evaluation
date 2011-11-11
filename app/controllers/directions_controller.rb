@@ -11,6 +11,7 @@ class DirectionsController < ApplicationController
   end
 
   def show_eigen_factors
+    @factors = @block.factors.order(:factor_description_id)
   end
 
   def show_articles

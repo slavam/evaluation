@@ -1,7 +1,7 @@
 # coding: utf-8
 class FactorsController < ApplicationController
   before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights]
-#  before_filter :find_factor, :only => :destroy
+  before_filter :find_factor, :only => [:edit_descriptor, :save_descriptor]
   
   def show
   end
@@ -46,6 +46,8 @@ class FactorsController < ApplicationController
       @factor = Factor.new
       @factor.block_id = params[:block_id]
       @factor.factor_description_id = params[:new_factor][:factor_description_id]
+      @factor.plan_descriptor = params[:new_factor][:plan_descriptor]
+      @factor.fact_descriptor = params[:new_factor][:fact_descriptor]
       @factor.save
       @factor_weight = FactorWeight.new
       @factor_weight.factor_id = @factor.id
@@ -84,9 +86,20 @@ class FactorsController < ApplicationController
     end
   end
  
-#  def delete_factor
-#    @factors = Factor.where  
-#  end
+  def edit_descriptor
+    
+  end
+  
+  def update
+    @factor = Factor.find params[:id]
+    if not @factor.update_attributes params[:factor]
+      render :action => :edit_descriptor
+    else
+      notice_updated
+      redirect_to :controller => 'directions', :action => 'show_articles', :id => @factor
+    end
+    
+  end
   
   def destroy
     block_id = @factor.block_id

@@ -1,0 +1,14 @@
+# coding: utf-8
+%h2 Параметры формирования плана и факта для показателей 
+.content
+  %table.data
+    %tr
+      %th ID
+      %th Название
+    - for p in @params
+      %tr
+        %td= p.id
+        %td= p.description
+%br	
+.actions
+  = link_to 'Добавить', :action => 'new'         

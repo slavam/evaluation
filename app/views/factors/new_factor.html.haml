@@ -10,16 +10,22 @@
         %th Название
         %th Вес
         %th Описание
+        %th План-дескриптор
+        %th Факт-дескриптор
       - for f in @block.factors
         %tr
           %td= f.factor_description.short_name
           - @w = f.factor_weights.last
           %td= text_field :w, :weight, :index => f.id, :size => 5
           %td= @w.description
+          %td= f.plan_descriptor
+          %td= f.fact_descriptor
       %tr
         %td= select :new_factor, "factor_description_id", FactorDescription.order(:short_name).collect {|fd| [ fd.short_name, fd.id ] }
         %td= text_field :new_factor, :weight, :size => 5
-        %td= text_field :new_factor, :description, :size => 50    
+        %td= text_field :new_factor, :description, :size => 20    
+        %td= text_field :new_factor, :plan_descriptor, :size => 20
+        %td= text_field :new_factor, :fact_descriptor, :size => 20
       %br	
     = submit_tag "Сохранить"
         
