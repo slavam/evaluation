@@ -87,7 +87,6 @@ class FactorsController < ApplicationController
   end
  
   def edit_descriptor
-    
   end
   
   def update
@@ -98,7 +97,6 @@ class FactorsController < ApplicationController
       notice_updated
       redirect_to :controller => 'directions', :action => 'show_articles', :id => @factor
     end
-    
   end
   
   def destroy

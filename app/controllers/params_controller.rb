@@ -41,11 +41,13 @@ class ParamsController < ApplicationController
       redirect_to :controller => 'directions', :action => 'show_articles', :id => @parameter.factor_id
     end
   end
+  
   private
   
   def find_factor
     @factor = Factor.find params[:factor_id]
   end
+  
   def find_action
     @action = Action.find params[:action_id]
   end

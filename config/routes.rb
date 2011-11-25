@@ -83,6 +83,11 @@ Evaluation::Application.routes.draw do
   end
 
   resources :param_descriptions
+  resources :problem_rates do
+    collection do
+      get :delete_interval, :new_interval
+    end
+  end
 
   # Sample of regular route:
   #   match 'products/:id' => 'catalog#view'

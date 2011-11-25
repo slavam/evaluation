@@ -39,4 +39,6 @@
 .actions
 %br  
   = link_to "Редактировать дескрипторы", :controller => 'factors', :action => 'edit_descriptor', :id => @factor
-  -#= link_to 'Добавить', :action => 'new_article', :controller => 'articles', :factor_id => @factor 
+%br  
+  - if @factor.factor_description.short_name == "% проблемности"
+    = link_to 'Шкала проблемности', :action => 'index', :controller => 'problem_rates', :factor_id => @factor.id 

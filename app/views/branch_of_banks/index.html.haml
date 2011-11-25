@@ -12,7 +12,8 @@
         %td= b.id
         %td= b.code
         %td= b.name
-        %td= b.parent
+        - if b.division_parent
+          %td= b.division_parent.name
 %br	
 -#.actions
   -#= link_to 'Добавить', :action => 'new'         

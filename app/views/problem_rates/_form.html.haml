@@ -1,0 +1,21 @@
+%h2= submit +" интервал"
+%h3 Шаблон: #{@factor.block.direction.short_name}
+.content
+  - form_for @interval do |form|
+    %table.card
+      %tr
+        %th Начало интервала:
+        %td= form.text_field :begin_value, :size => 5
+      %tr
+        %th Конец интервала:
+        %td= form.text_field :stop_value, :size => 5
+      %tr
+        %th Результат:
+        %td= form.text_field :result_value, :size => 5
+      %tr
+        %th Описание:
+        %td= form.text_field :description
+        %td= hidden_field_tag :factor_id, @factor.id
+    %br
+  
+    = submit_tag submit

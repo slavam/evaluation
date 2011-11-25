@@ -1,0 +1,27 @@
+# coding: utf-8
+%h2 Шкала проблемности
+%h3 Шаблон: #{@factor.block.direction.short_name} 
+
+.content
+  %table.data
+    %tr
+      %th Результат
+      %th Начало диапазона
+      %th Конец диапазона
+      %th Дата создания
+      %th Описание
+      %th
+    - for r in @rates
+      %tr
+        %td= link_to r.result_value.to_f, edit_problem_rate_path(r.id) 
+        %td= r.begin_value.to_f 
+        %td= r.stop_value.to_f 
+        %td= r.start_date.to_date 
+        %td= r.description
+        %td= link_to 'Удалить', :action => 'delete_interval', :problem_rate_id => r.id
+        %td= hidden_field_tag :factor_id, r.factor_id
+%br      
+.actions
+  = link_to 'Добавить', :action => 'new_interval', :factor_id => @factor.id
+  -#= link_to 'Расчет KPI', :action => 'get_calc_params'
+        
