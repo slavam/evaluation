@@ -1,8 +1,12 @@
 # coding: utf-8
 %h2 Оценка эффективности деятельности
-- if @performances[0].direction.level_id == 4 
-  %h3 Сотрудник: #{@performances[0].fullname}  
-%h3 Отделение: #{@performances[0].division.name}
+- case @performances[0].direction.level_id
+  - when 4 
+    %h3 Сотрудник: #{@performances[0].fullname}
+  - when 1
+    %h3 По всему банку
+  - else
+    %h3 Отделение: #{@performances[0].division.name}
 %h3 Шаблон: #{@performances[0].direction.name}
 %h3 Период: #{@performances[0].period.description}  
 - block_name = ''
@@ -78,7 +82,7 @@
         - average_percent += p.exec_percent
         %td{style: 'text-align: right'}= |
           link_to number_with_precision(p.kpi, :precision => 3, :separator => '.'), |
-          :action => 'show_values', :division_id => p.division, :direction_id => p.direction, |
+          :action => 'show_values', :division_id => p.division_id, :direction_id => p.direction, |
           :factor_id => p.factor |
         - kpi_total += p.kpi 
     %tr

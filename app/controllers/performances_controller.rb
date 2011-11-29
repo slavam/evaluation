@@ -32,7 +32,7 @@ class PerformancesController < ApplicationController
       when 1 then # whole the bank
         redirect_to :action => :show_report, 
                     :report_params => {:period_id => params[:report_params][:period_id], 
-                                       :division_id =>  '1', 
+                                       :division_id =>  '999', 
                                        :direction_id => direction.id}
       when 4 then # by worker
         redirect_to :action       => :get_report_worker, 
@@ -53,7 +53,7 @@ class PerformancesController < ApplicationController
     case direction.level_id 
       when 1 then # whole the bank
         redirect_to :action => :calc_kpi, 
-                    :report_params => {:division_id =>  '1'}, 
+                    :report_params => {:division_id =>  '999'}, 
                     :period_id => params[:report_params][:period_id],
                     :direction_id => direction.id
       when 4 then # by worker
@@ -220,8 +220,8 @@ class PerformancesController < ApplicationController
 
   def get_fd_ids division_id
     fd_ids = []
-    if division_id == '1' # whole the bank
-      BranchOfBank.select(:id).where("code >= '000' and code < '900' and open_date is not null").collect { 
+    if division_id == '999' #'1' # whole the bank
+      BranchOfBank.select(:id).where("open_date is not null").collect { 
         |d| fd_ids << d.id
       }  
     else
@@ -237,9 +237,9 @@ class PerformancesController < ApplicationController
 
   def get_codes division_id
     codes = []
-    if division_id == '1' # whole the bank
-#      codes << '000'
-      BranchOfBank.select(:code).where("code >= '000' and code < '900' and open_date is not null").collect { 
+    if division_id == '999' # whole the bank
+# where("code >= '000' and code < '900' and open_date is not null").collect {      
+      BranchOfBank.select(:code).where("open_date is not null").collect { 
         |d| codes << d.code
       }  
     else
@@ -562,12 +562,18 @@ class PerformancesController < ApplicationController
     codes = []
     odb_ids = []
     codes = get_codes division_id
+# need divide 000 and 002    
+    is_go = false
     codes.each {|c|
-      d = Division.find_by_code ((c == '000' or c == '002') ? 1 : c.to_i)
-#      where("code=?", (c == '000' or c == '002') ? 1 : c.to_i).first
-      if d
-        odb_ids << d.id
-      end  
+      if not(is_go and (c == '000' or c == '002'))
+        d = Division.find_by_code ((c == '000' or c == '002') ? 1 : c.to_i)
+        if d
+          odb_ids << d.id
+        end  
+      end
+      if c == '000' or c == '002'
+        is_go = true
+      end 
     }
 #    RAILS_DEFAULT_LOGGER.info odb_ids.size.to_s+"++++++++++++++++++++++++++++"
     return odb_ids
@@ -836,6 +842,37 @@ class PerformancesController < ApplicationController
                 division_id.to_s+", '1%', :l_res);
               end; "
               
+          when 'get_fact_municipal_by_contract'
+            contract_ids = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor.id, 12).last.value
+            query = "
+              declare
+                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                division_id pls_integer; 
+                contract_id pls_integer;
+                count_payment pls_integer;
+                l_res number(38,2);
+              begin
+                "+FACT_OWNER+".vbr_kpi.get_count_municipal(TO_DATE('"+
+                period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'),
+                TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'), c_cursor);
+                l_res := 0;
+                LOOP
+                  EXIT WHEN c_cursor%NOTFOUND;
+                  FETCH c_cursor INTO division_id, contract_id, count_payment;
+                  if division_id = "+division_id.to_s+" and contract_id in ("+contract_ids+") then
+                    l_res := l_res + count_payment;
+                  end if;
+                END LOOP;
+                :l_res := l_res;
+              end;"            
+              
+#         case when mp.contract_id in
+#         (17608,  -- ПКТС
+#          12205,  -- ЕРЦ
+#          24991,  -- флэш-киоск
+#          10990,  -- пополнения моб. операторов
+#          23961)  -- СДА             
+            
           when 'get_fact_municipal'
             query = " 
               declare

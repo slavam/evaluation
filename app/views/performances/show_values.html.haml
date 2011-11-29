@@ -1,6 +1,9 @@
 # coding: utf-8
 %h2 Динамика показателя "#{@values[0].factor.factor_description.short_name}"
-%h3 Отделение: #{@values[0].division.name} 
+- if @values[0].division_id = 999
+  %h3 По всему банку
+- else  
+  %h3 Отделение: #{@values[0].division.name} 
 %h3 Блок: #{@values[0].block.block_description.short_name}
 %h3 Шаблон: #{@values[0].direction.short_name}
 

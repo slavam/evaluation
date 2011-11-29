@@ -9,6 +9,7 @@ odb:
   database: ora0-i00:1521/SRBANK
   username: kpi
   password: R4EW9OLK
+# cursor_sharing: similar
 
 personnel:
   adapter: sqlserver

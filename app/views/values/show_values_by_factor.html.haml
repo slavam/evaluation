@@ -14,7 +14,10 @@
     - for v in @values
       %tr
         %td= v.period.description
-        %td= v.branch_of_bank.name
+        - if v.division_id == 999
+          %td= 'По банку'
+        - else
+          %td= v.branch_of_bank.name
         %td= v.fullname
         %td= v.action.name
         %td= v.factor_value

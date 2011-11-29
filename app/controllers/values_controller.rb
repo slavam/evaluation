@@ -45,7 +45,7 @@ class ValuesController < ApplicationController
     end
     @factor = Factor.find params[:factor_id]
     if params[:division_id]
-      @value.division_id = 1
+      @value.division_id = 999
     end
     if not @value.save
       if @value.worker_id
