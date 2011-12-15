@@ -13,8 +13,8 @@
       %td= @factor.factor_weights.last.description
     %tr  
       %th План-дескриптор: 
-      - if (@factor.plan_descriptor == 'get_plan_from_values')
-        %td= link_to 'get_plan_from_values', :controller => 'values', :action => 'show_values_by_factor', :factor_id => @factor.id
+      - if (@factor.plan_descriptor == 'get_plan_from_values') or (@factor.plan_descriptor == 'get_plan_from_values_by_worker')
+        %td= link_to @factor.plan_descriptor, :controller => 'values', :action => 'show_values_by_factor', :factor_id => @factor.id
       - else
         %td= @factor.plan_descriptor.nil? ? '' : (link_to @factor.plan_descriptor, :controller => 'params', :action => 'show_params_by_factor', :factor_id => @factor.id, :action_id => 1 )
       - for p in @factor.params.where('action_id=1')

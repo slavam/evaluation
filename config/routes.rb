@@ -35,7 +35,7 @@ Evaluation::Application.routes.draw do
     collection do
       get :get_report_params, :get_report_params_2, :get_report_division, 
         :report_print, :get_calc_params, :get_calc_params_2, :get_calc_division, 
-        :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker
+        :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, :show_kpi_by_divisions
 #, :calc_worker_kpi
     end
   end

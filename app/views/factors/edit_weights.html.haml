@@ -1,5 +1,7 @@
 # coding: utf-8
-%h1 Изменение весов показателей блока "#{@block.block_description.short_name}" шаблона "#{@block.direction.short_name}" 
+%h2 Изменение весов показателей 
+%h3 Блок: #{@block.block_description.short_name} 
+%h3 Шаблон: #{@block.direction.short_name} 
 %h4 Примечание: сумма весов всех показателей должна равняться 1
 .content
   - form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|

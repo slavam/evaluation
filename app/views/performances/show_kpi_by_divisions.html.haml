@@ -1,9 +1,6 @@
 # coding: utf-8
-%h2 Динамика показателя "#{@values[0].factor.factor_description.short_name}"
-- if @values[0].division_id == 999
-  %h3 По всему банку
-- else  
-  %h3 Отделение: #{@values[0].division.name} 
+%h2 Распределение показателя "#{@values[0].factor.factor_description.short_name}" по отделениям
+%h3 Период: #{@values[0].period.description}
 %h3 Блок: #{@values[0].block.block_description.short_name}
 %h3 Шаблон: #{@values[0].direction.short_name}
 
@@ -17,13 +14,13 @@
         zoomType: 'xy'
       },
       title: {
-        text: "Динамика показателя"
+        text: "Распределение показателя"
       },
       xAxis: [{
          categories: #{
            cat = []
            for v in @values do 
-             cat << v.period.description
+             cat << v.division.code
            end
            cat} 
       }],
@@ -68,6 +65,7 @@
         }
       },
       series: [{
+        type: 'column',
         name: "KPI",
         color: '#AA4643',
         yAxis: 0,
@@ -105,18 +103,19 @@
 
 
 
-%div{'id' => "kpi_chart", 'style'=> "width:760px; height:300px;"}
+%div{'id' => "kpi_chart", 'style'=> "width:960px; height:300px;"}
 .content
   %table.data
     %tr
-      %th Период
+      %th Отделение
       %th{style: 'text-align: center'} KPI
       %th{style: 'text-align: center'} План
       %th{style: 'text-align: center'} Факт
       %th Дата расчета
     - for v in @values
       %tr
-        %td= v.period.description
+        - division = BranchOfBank.find v.division_id
+        %td= v.division.name+' '+(division.division_parent.nil? ? '' : division.division_parent.name)
         %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
         - case v.factor.factor_description.unit.name 
         -   when 'грн.' then 

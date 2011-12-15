@@ -3,6 +3,7 @@
 - case @performances[0].direction.level_id
   - when 4 
     %h3 Сотрудник: #{@performances[0].fullname}
+    %h3 Отделение: #{@performances[0].division.name}
   - when 1
     %h3 По всему банку
   - else
@@ -57,7 +58,10 @@
         %td= ''
         %td= p.factor.factor_description.short_name+(p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':'')
         %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.last.weight*100, :precision => 0)
-        %td= number_with_precision(p.rate, :precision => 3, :separator => '.')
+        -#%td= number_with_precision(p.rate, :precision => 3, :separator => '.')
+        %td= link_to number_with_precision(p.rate, :precision => 3, :separator => '.'), |
+          :action => 'show_kpi_by_divisions', :period_id => p.period_id, :direction_id => p.direction, |
+          :factor_id => p.factor | 
         - factor_total+=p.rate
         - 
         - case p.factor.factor_description.unit.name 
@@ -83,7 +87,7 @@
         %td{style: 'text-align: right'}= |
           link_to number_with_precision(p.kpi, :precision => 3, :separator => '.'), |
           :action => 'show_values', :division_id => p.division_id, :direction_id => p.direction, |
-          :factor_id => p.factor |
+          :factor_id => p.factor , :worker_id => p.employee_id |
         - kpi_total += p.kpi 
     %tr
       %td{:colspan => 2}= ''
