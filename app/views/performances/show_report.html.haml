@@ -8,7 +8,8 @@
     %h3 По всему банку
   - else
     %h3 Отделение: #{@performances[0].division.name}
-%h3 Шаблон: #{@performances[0].direction.name}
+%h3= link_to "Шаблон: "+@performances[0].direction.name, :action => 'show_final_kpi_for_direction', |
+  :division_id => @performances[0].division_id, :period_id => @performances[0].period_id, :level_id => @performances[0].direction.level_id
 %h3 Период: #{@performances[0].period.description}  
 - block_name = ''
 - factor_total = 0
@@ -58,10 +59,12 @@
         %td= ''
         %td= p.factor.factor_description.short_name+(p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':'')
         %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.last.weight*100, :precision => 0)
-        -#%td= number_with_precision(p.rate, :precision => 3, :separator => '.')
-        %td= link_to number_with_precision(p.rate, :precision => 3, :separator => '.'), |
-          :action => 'show_kpi_by_divisions', :period_id => p.period_id, :direction_id => p.direction, |
-          :factor_id => p.factor | 
+        - if @performances[0].direction.level_id == 3
+          %td= link_to number_with_precision(p.rate, :precision => 3, :separator => '.'), |
+            :action => 'show_kpi_by_divisions', :period_id => p.period_id, :direction_id => p.direction, |
+            :factor_id => p.factor |
+        - else   
+          %td= number_with_precision(p.rate, :precision => 3, :separator => '.')
         - factor_total+=p.rate
         - 
         - case p.factor.factor_description.unit.name 
@@ -100,9 +103,13 @@
         number_with_precision(kpi_total, :precision => 3, :separator => '.') |
       -  
     %tr
-      %td{:colspan => 8}= "ИТОГО"
+      - if p.division_id == 999
+        %td{:colspan => 8}= "ИТОГО"
+      - else 
+        %td{:colspan => 8}= link_to "ИТОГО", :action => 'show_final_kpi_for_division', :period_id => p.period_id, :direction_id => p.direction_id 
       %td{style: 'text-align: right; font-weight: bold'}= |
-        number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.') |
+        link_to number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.'), |
+        :action => 'show_final_kpi', :division_id => p.division_id, :direction_id => p.direction_id |
 
 -#.actions
   -#=link_to 'Распечатать', :action => 'report_print', :period_id => @performances[0].period_id, :division_id => @performances[0].division_id, :direction_id => @performances[0].direction_id, :format => 'pdf'

@@ -1,0 +1,77 @@
+# coding: utf-8
+%h2 Динамика итогового KPI
+- if @values[0].division_id == 999
+  %h3 По всему банку
+- else  
+  %h3 Отделение: #{@values[0].division.name} 
+%h3 Шаблон: #{@values[0].direction.short_name}
+
+%style{:type => "text/css", :media => "screen"}
+:javascript
+  $(function(){
+    new Highcharts.Chart({
+      chart: {
+        renderTo: "kpi_chart",
+        zoomType: 'xy'
+      },
+      title: {
+        text: "Динамика показателя"
+      },
+      xAxis: [{
+        categories: #{
+          cat = []
+          for v in @values do 
+            cat << v.period.description
+          end
+          cat} 
+      }],
+      yAxis: [{
+        title: {
+          text: "KPI",
+          style: {
+            color: '#AA4643'
+          }
+        },
+        labels: {
+          formatter: function() {
+            return this.value;
+          },
+          style: {
+            color: '#AA4643'
+          }
+        }
+      }],
+      tooltip: {
+        formatter: function(){
+          return Highcharts.numberFormat(this.y, 2);
+        }
+      },
+      series: [{
+        name: "KPI",
+        color: '#AA4643',
+        yAxis: 0,
+        data: #{ 
+          val = []
+          for vv in @values do 
+            val << vv.kpi 
+          end  
+          val
+        }
+      }]
+    });
+  });
+
+%div{'id' => "kpi_chart", 'style'=> "width:760px; height:300px;"}
+     
+.content
+  %table.data
+    %tr
+      %th Период
+      %th{style: 'text-align: center'} KPI
+      %th Дата расчета
+    - for v in @values
+      %tr
+        %td= v.period.description
+        %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        %td= v.calc_date.to_date
+        

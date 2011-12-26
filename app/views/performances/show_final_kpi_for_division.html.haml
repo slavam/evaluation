@@ -1,0 +1,84 @@
+# coding: utf-8
+%h2 Распределение итогового KPI
+%h3 Период: #{@values[0].period.description} 
+%h3 Шаблон: #{@values[0].direction.short_name}
+
+%style{:type => "text/css", :media => "screen"}
+:javascript
+  $(function(){
+    new Highcharts.Chart({
+      chart: {
+        renderTo: "kpi_chart",
+        zoomType: 'xy'
+      },
+      title: {
+        text: "Эффективность отделений"
+      },
+      xAxis: [{
+        categories: #{
+          cat = []
+          for v in @values do
+            if v.division 
+              cat << v.division.code
+            end    
+          end
+          cat} 
+      }],
+      yAxis: [{
+        title: {
+          text: "KPI",
+          style: {
+            color: '#AA4643'
+          }
+        },
+        labels: {
+          formatter: function() {
+            return this.value;
+          },
+          style: {
+            color: '#AA4643'
+          }
+        }
+      }],
+      tooltip: {
+        formatter: function(){
+          return Highcharts.numberFormat(this.y, 2);
+        }
+      },
+      series: [{
+        type: 'column',
+        name: "KPI",
+        color: '#AA4643',
+        yAxis: 0,
+        data: #{ 
+          val = []
+          for vv in @values do 
+            val << vv.kpi 
+          end  
+          val
+        }
+      }]
+    });
+  });
+
+%div{'id' => "kpi_chart", 'style'=> "width:960px; height:300px;"}
+     
+.content
+  %table.data
+    %tr
+      %th Отделение
+      %th{style: 'text-align: center'} KPI
+      %th Дата расчета
+    - for v in @values.order(:kpi)
+      %tr
+        - if v.division_id == 999
+          %td= link_to "По всему банку", |
+          :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} |
+        - else
+          - division = BranchOfBank.find v.division_id
+          %td= link_to (v.division.name+' '+(division.division_parent.nil? ? '' : division.division_parent.name)), |
+          :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} |
+        -
+        %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        %td= v.calc_date.to_date
+        

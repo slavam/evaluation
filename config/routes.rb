@@ -34,9 +34,10 @@ Evaluation::Application.routes.draw do
   resources :performances do
     collection do
       get :get_report_params, :get_report_params_2, :get_report_division, 
-        :report_print, :get_calc_params, :get_calc_params_2, :get_calc_division, 
-        :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, :show_kpi_by_divisions
-#, :calc_worker_kpi
+        :report_print, :get_calc_params, :get_calc_division, 
+        :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, 
+        :show_kpi_by_divisions, :show_final_kpi, :show_final_kpi_for_division,
+        :show_final_kpi_for_direction
     end
   end
 

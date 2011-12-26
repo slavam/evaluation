@@ -7,7 +7,6 @@ class ValuesController < ApplicationController
   
   def show_values_by_factor
     @values = Value.where('factor_id=?', params[:factor_id]).order(:period_id, :division_id)
-    
   end
   
   def new

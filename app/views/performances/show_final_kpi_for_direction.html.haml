@@ -1,0 +1,67 @@
+# coding: utf-8
+%h2 Итоговые KPI по направлениям
+%h3 Период: #{@values[0].period.description}
+- if @values[0].division_id == 999
+  %h3 По всему банку
+-else 
+  %h3 Отделение: #{@values[0].division.name}
+
+%style{:type => "text/css", :media => "screen"}
+:javascript
+  $(function(){
+    new Highcharts.Chart({
+      chart: {
+        renderTo: "kpi_chart",
+        plotBackgroundColor: null,
+        plotBorderWidth: null,
+        plotShadow: false
+      },
+      title: {
+        text: "Эффективность по направлениям"
+      },
+      tooltip: {
+        formatter: function(){
+          return '<b>'+ this.point.name +'</b>';
+        }
+      },
+      plotOptions: {
+         pie: {
+            allowPointSelect: true,
+            cursor: 'pointer',
+            dataLabels: {
+               enabled: true,
+               formatter: function() {
+                  return '<b>'+ this.y +'</b>';
+               }
+            }
+         }
+      },
+
+      series: [{
+        type: 'pie',
+        name: "KPI",
+        data: #{ 
+          val = []
+          for vv in @values do 
+            val << [vv.direction.short_name, vv.kpi] 
+          end  
+          val
+        }
+      }]
+    });
+  });
+
+%div{'id' => "kpi_chart", 'style'=> "width:960px; height:300px;"}
+     
+.content
+  %table.data
+    %tr
+      %th Направление
+      %th{style: 'text-align: center'} KPI
+      %th Дата расчета
+    - for v in @values
+      %tr
+        %td= link_to v.direction.short_name, :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} 
+        %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        %td= v.calc_date.to_date
+        

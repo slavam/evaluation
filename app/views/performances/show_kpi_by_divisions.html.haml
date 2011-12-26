@@ -19,8 +19,10 @@
       xAxis: [{
          categories: #{
            cat = []
-           for v in @values do 
-             cat << v.division.code
+           for v in @values do
+             if v.division 
+               cat << v.division.code
+             end    
            end
            cat} 
       }],
@@ -77,6 +79,7 @@
           val}
       },
       {
+        type: 'column',
         name: "План",
         yAxis: 1,
         color: '#4572A7',
@@ -88,6 +91,7 @@
           val}
       },
       {
+        type: 'column',
         name: "Факт",
         yAxis: 1,
         color: '#89A54E',
@@ -103,7 +107,7 @@
 
 
 
-%div{'id' => "kpi_chart", 'style'=> "width:960px; height:300px;"}
+%div{'id' => "kpi_chart", 'style'=> "width:1160px; height:300px;"}
 .content
   %table.data
     %tr
@@ -115,7 +119,9 @@
     - for v in @values
       %tr
         - division = BranchOfBank.find v.division_id
-        %td= v.division.name+' '+(division.division_parent.nil? ? '' : division.division_parent.name)
+        %td= link_to (v.division.name+' '+(division.division_parent.nil? ? '' : division.division_parent.name)), |
+          :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} |
+        -
         %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
         - case v.factor.factor_description.unit.name 
         -   when 'грн.' then 
