@@ -113,6 +113,7 @@
     %tr
       %th Отделение
       %th{style: 'text-align: center'} KPI
+      %th{style: 'text-align: center'} Процент
       %th{style: 'text-align: center'} План
       %th{style: 'text-align: center'} Факт
       %th Дата расчета
@@ -123,6 +124,7 @@
           :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} |
         -
         %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        %td{style: 'text-align: right'}= number_with_precision(v.exec_percent, :precision => 4, :separator => '.')
         - case v.factor.factor_description.unit.name 
         -   when 'грн.' then 
           %td{style: 'text-align: right'}= number_to_currency(v.plan, :unit => "", :format => "%n %u")

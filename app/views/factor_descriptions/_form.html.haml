@@ -12,7 +12,7 @@
         %td= form.text_field :short_name, :size => 50
       %tr
         %th Единица измерения:
-        %td= select :units, "unit_id", Unit.all.collect {|u| [ u.description, u.id ] }
+        %td= select :units, "unit_id", options_for_select(Unit.all.collect {|u| [ u.description, u.id ] }, @factor.unit_id)
     %br
   
     = submit_tag submit

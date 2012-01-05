@@ -5,6 +5,7 @@ class PerformancesController < ApplicationController
   PLAN_OWNER = 'RPK880508'
   FACT_OWNER = 'SR_BANK'
   FIN_OWNER  = 'FIN'
+  @is_data_ready = true
   def index
     @performances = Performance.order(:period_id, :direction_id, :division_id, :block_id, :factor_id)
   end
@@ -31,23 +32,21 @@ class PerformancesController < ApplicationController
       select max(calc_date) from performances where block_id = 0 and period_id = "+
       params[:period_id]+" and division_id="+params[:division_id]+" 
       group by direction_id) order by kpi desc")
-#    @values = Performance.where("block_id = 0 and period_id = ? and division_id=? and calc_date in (
-#      select max(calc_date) from performances where block_id = 0 and period_id = ? and division_id=? 
-#      group by direction_id)",
-#        params[:period_id], params[:division_id], params[:period_id], params[:division_id]).order("kpi desc")
   end
   
   def show_values
     if Direction.find(params[:direction_id]).level_id == 4
-    @values = Performance.where('division_id=? and direction_id=? and factor_id=?  and employee_id=? and calc_date in(
-      select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? and employee_id=? 
-      group by period_id order by period_id)',params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id],
-      params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id]).order(:period_id)   
+      @values = Performance.where('division_id=? and direction_id=? and factor_id=?  and employee_id=? and calc_date in(
+        select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? and employee_id=? 
+        group by period_id order by period_id)',
+        params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id],
+        params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id]).order(:period_id)   
     else
       @values = Performance.where('division_id=? and direction_id=? and factor_id=? and calc_date in(
-      select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? 
-      group by period_id order by period_id)',params[:division_id], params[:direction_id], params[:factor_id],
-      params[:division_id], params[:direction_id], params[:factor_id]).order(:period_id)
+        select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? 
+        group by period_id order by period_id)',
+        params[:division_id], params[:direction_id], params[:factor_id],
+        params[:division_id], params[:direction_id], params[:factor_id]).order(:period_id)
     end  
   end
   
@@ -85,44 +84,20 @@ class PerformancesController < ApplicationController
                     :period_id => params[:report_params][:period_id]
     end
   end
-
-#  def get_calc_division
-#  end
-  
-#  def get_calc_params_2
-#    direction = Direction.find params[:report_params][:direction_id]
-#    case direction.level_id 
-#      when 1 then # whole the bank
-#        redirect_to :action => :calc_kpi, 
-#                    :report_params => {:division_id =>  '999'}, 
-#                    :period_id => params[:report_params][:period_id],
-#                    :direction_id => direction.id
-#      when 4 then # by worker
-#        redirect_to :action => :calc_kpi, 
-#                    :report_params => {:division_id =>  '1002'}, 
-#                    :period_id => params[:report_params][:period_id],
-#                    :direction_id => direction.id
-#      when 3 then # all divisions
-#        redirect_to :action => :calc_kpi, 
-#                    :report_params => {:division_id =>  '1003'}, 
-#                    :period_id => params[:report_params][:period_id],
-#                    :direction_id => direction.id
-#      else # regions
-#        redirect_to :action => :get_calc_division, 
-#                    :direction_id => direction.id, 
-#                    :period_id => params[:report_params][:period_id]
-#    end
-#  end
-  
-#  def get_calc_worker
-#  end
-#  
-#  def get_calc_params
-#  end
   
   def calc_kpi
     @direction = Direction.find params[:report_params][:direction_id]
-    @period = Period.find params[:report_params][:period_id]
+    period = Period.find params[:report_params][:period_id]
+    codes = get_codes '999'
+    codes.each {|c|
+      @is_data_ready = true
+      is_collumn_in_table c, period
+      if not @is_data_ready
+        flash_error :data_not_ready
+        redirect_to :action => 'get_calc_params'
+        return
+      end
+    }
     odb_connection = OCI8.new("kpi", "MVM55010101", "srbank")
     case @direction.level_id
       when 4 # all workers MSB
@@ -134,72 +109,32 @@ class PerformancesController < ApplicationController
           where e.code_division like '%8000' and e.code_division > '0009999' 
           order by p.code_division")
           
-        calc_kpi_for_all_divisions @period, @direction, odb_connection
-        @regions = []
-        save_final_kpi @period, @direction, @regions
+        calc_kpi_for_all_divisions period, @direction, odb_connection
+        regions = []
+        save_final_kpi period, @direction, regions
         redirect_to :action       => :get_report_worker, 
-                    :period_id    => @period.id,
+                    :period_id    => period.id,
                     :direction_id => @direction.id 
       when 2 # all regions 
-        @regions = BranchOfBank.where("open_date is not null and parent_id = 1").order(:code)
-        calc_kpi_for_all_divisions @period, @direction, odb_connection
-        save_final_kpi @period, @direction, @regions
-        redirect_to :action => 'get_report_division', :direction_id => @direction.id, :period_id => @period.id  
+        regions = BranchOfBank.where("open_date is not null and parent_id = 1").order(:code)
+        calc_kpi_for_all_divisions period, @direction, odb_connection
+        save_final_kpi period, @direction, regions
+        redirect_to :action => 'get_report_division', :direction_id => @direction.id, :period_id => period.id  
       when 3 # all divisions 
         divisions = BranchOfBank.where("open_date is not null").order(:code)
-        calc_kpi_for_all_divisions @period, @direction, odb_connection
-        save_final_kpi @period, @direction, divisions
-        redirect_to :action => 'get_report_division', :direction_id => @direction.id, :period_id => @period.id  
+        calc_kpi_for_all_divisions period, @direction, odb_connection
+        save_final_kpi period, @direction, divisions
+        redirect_to :action => 'get_report_division', :direction_id => @direction.id, :period_id => period.id  
       when 1 # whole bank 
-        calc_kpi_for_all_divisions @period, @direction, odb_connection
-        @regions = []
-        save_final_kpi @period, @direction, @regions
+        calc_kpi_for_all_divisions period, @direction, odb_connection
+        regions = []
+        save_final_kpi period, @direction, regions
         redirect_to :action => :show_report, :report_params => {
-                    :period_id => @period.id, 
+                    :period_id => period.id, 
                     :division_id => 999, 
                     :direction_id => @direction.id}
       end
     odb_connection.logoff
-#    else
-#      fd_division_id = params[:report_params][:division_id]
-#      worker_id = 0
-#      fullname = ''
-#    end
-#    
-#    odb_division_ids = []
-#    odb_division_ids = get_odb_division_ids fd_division_id 
-#    for b in @direction.blocks do  
-#      for f in b.factors do
-#        if f.factor_weights.last.weight > 0.00001
-#          plan = get_plan @period, fd_division_id, f.id, worker_id
-#          plan = plan ? plan : 0
-#          fact = get_fact odb_connection, odb_division_ids, f.id, @period, fd_division_id, worker_id
-#          fact = (fact ? fact : 0)
-#          bw = b.block_weights.last
-#          fw = f.factor_weights.last
-#          rate = bw.weight * fw.weight
-#          percent = 0
-#          if f.factor_description.short_name == "% проблемности" 
-#            if fact > 0
-#              percent = get_problem_percent(f.id, fact)
-#            end
-#          else
-#            percent = ((plan and (plan != 0))  ? 100*fact.to_f/plan.to_f : 0)
-#          end
-#          percent = 200 if percent > 200
-#          
-#          kpi = rate*percent
-#         
-#          save_kpi @period.id, fd_division_id, @direction.id,
-#            b.id, f.id, worker_id, fullname, rate, plan, fact, percent, kpi
-#        end
-#      end
-#    end
-#    odb_connection.logoff
-#    redirect_to :action => :show_report, 
-#      :report_params => {:period_id => params[:period_id], 
-#      :division_id =>  fd_division_id, 
-#      :direction_id => params[:direction_id]}
   end
     
   def show_report
@@ -1694,6 +1629,16 @@ end;
     @period = Period.find params[:period_id]    
   end
 
+  def is_collumn_in_table code, period
+    checked_name = "MONTH_"+period.end_date.year.to_s+"_"+period.end_date.month.to_s+"_"+period.end_date.day.to_s
+    query = "select "+checked_name+" from "+PLAN_OWNER+".REZULT_"+code
+    
+    res = PlanDictionary.find_by_sql(query).first
+    @is_data_ready = true
+  rescue ActiveRecord::StatementInvalid
+    @is_data_ready = false    
+  end
+  
   def calc_kpi_for_all_divisions period, direction, odb_connect
     code_by_id = {}
     parents = {}
@@ -1820,6 +1765,7 @@ end;
                 plans.clear
                 facts.clear
                 code_by_id.each_value {|c|
+                  
                   query = ''
                   res = ''
                   s_m = 1 #period.start_date.month
@@ -2982,15 +2928,13 @@ end;
         if Factor.find(factor_id).plan_descriptor == 'get_plan_const'
           plan = Param.where('factor_id=? and action_id=1 and param_description_id=8', factor_id).last.value.to_i
         else
-          plans.each_value {|p| plan = plan + (p ? p : 0)}
+          plans.each_value {|p| plan += (p ? p : 0)}
         end
-
-#                RAILS_DEFAULT_LOGGER.info fact_of_bank.to_s+"++++++++++++++++++++++++++++"
         if factor.fact_descriptor == 'get_fact_from_values'
           fact = fact_of_bank
         else
           if (factor.factor_description.unit_id != 1) or (factor.block.block_description_id == 2)
-            facts.each_value {|f| fact = fact + (f ? f.to_f : 0)}
+            facts.each_value {|f| fact += (f ? f.to_f : 0)}
           else
             fact = fact_of_bank
           end 
@@ -3009,13 +2953,18 @@ end;
       when 3 # all divisions
         plans.each {|code, value|
           plan = value ? value : 0
-          fact = (facts[code.to_i] and not facts[code.to_i].nil?) ? facts[code.to_i] : 0
+          fact = (not facts[code.to_i].nil?) ? facts[code.to_i] : 0
           rate = bw * fw
     
           if factor.factor_description.short_name == "% проблемности" 
             percent = get_problem_percent(factor_id, fact)
           else
-            percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
+            if factor.factor_description_id == 1 # Финансовый результат без учета расходов поддержек
+              percent = get_spec_percent plan, fact
+            else  
+              percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
+#              percent = 200 if percent > 200
+            end
           end
           percent = 200 if percent > 200
           kpi = rate*percent
@@ -3025,6 +2974,56 @@ end;
             rate, plan, fact, percent, kpi 
         }
     end
+  end
+  
+  def get_spec_percent plan, fact
+    if plan == 0 and fact == 0
+      return 100
+    end
+    if plan == 0
+      if fact > 0
+        return 100*fact
+      else
+        return 100/fact.abs
+      end
+    else    
+      if plan>0 and fact<0
+        if plan>fact.abs
+          return fact.abs*100/(plan-fact)
+        else
+          return plan*100/(plan-fact)
+        end  
+      else
+        return ((fact-plan)/plan.abs+1)*100
+      end
+    end  
+#round(((t.MONTH_2011_12_28 -t.MONTH_2011_11_30 - (t.plan_12)) / abs(t.plan_12) +1)*100,2))    
+=begin    
+    if plan == 0 and fact == 0
+      return 100
+    end
+    if plan > 0
+      if fact >= plan
+        return fact*100/plan
+      else
+        return plan*100/(plan+(plan-fact))
+      end
+    else
+      if plan == 0
+        if fact > 0
+          return 100*fact
+        else
+          return 100/fact.abs
+        end
+      else
+        if fact<=plan
+          return plan*100/fact
+        else
+          return (plan.abs+(plan.abs+fact))*100/plan.abs
+        end
+      end
+    end
+=end
   end
   
   def prepare_and_save_kpi_by_regions parents, plans, facts_by_regions, facts, direction, block_id, factor_id, period_id, bw, fw
@@ -3123,7 +3122,8 @@ end;
     end
   end
 #                RAILS_DEFAULT_LOGGER.info plans.values
-#                RAILS_DEFAULT_LOGGER.info "++++++++++++++++++++++++++++"
+#                  ::Rails.logger.info query+"++++++++++++++++++++++++++++"
+#                  ::Rails.logger.info r[0].to_s+"=>"+r[2].to_s+", "+r[3].to_s+"++++++++++++++++++++++++++++"
 #                p plan_fact.to_s+"++++++++++++++++++++++++++++"
   
 end

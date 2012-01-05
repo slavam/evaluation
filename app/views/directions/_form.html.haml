@@ -12,7 +12,7 @@
         %td= form.text_field :short_name, :size => 50
       %tr
         %th Уровень:
-        %td= select :levels, "level_id", Level.all.collect {|l| [ l.name, l.id ] }
+        %td= select :levels, "level_id", options_for_select(Level.all.collect {|l| [l.name, l.id]}, @direction.level_id)
     %br
   
     = submit_tag submit
