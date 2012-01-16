@@ -11,4 +11,4 @@
         %th= "Шаблон:"
         %td= select :report_params, "direction_id", Direction.order(:name).collect {|o| [ o.name, o.id ] }
             
-    = submit_tag "Продолжить"
+    = submit_tag "Рассчитать"

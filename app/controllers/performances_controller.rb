@@ -116,7 +116,7 @@ class PerformancesController < ApplicationController
                     :period_id    => period.id,
                     :direction_id => @direction.id 
       when 2 # all regions 
-        regions = BranchOfBank.where("open_date is not null and parent_id = 1").order(:code)
+        regions = BranchOfBank.where("open_date is not null and parent_id = 1 and id != 40").order(:code)
         calc_kpi_for_all_divisions period, @direction, odb_connection
         save_final_kpi period, @direction, regions
         redirect_to :action => 'get_report_division', :direction_id => @direction.id, :period_id => period.id  
@@ -669,6 +669,7 @@ class PerformancesController < ApplicationController
   end
   
   def get_fact_credit_value_msb period, codes
+    
     query = "
       select sum(dfp.base_amount) fact
         from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".division d
@@ -1631,12 +1632,21 @@ end;
 
   def is_collumn_in_table code, period
     checked_name = "MONTH_"+period.end_date.year.to_s+"_"+period.end_date.month.to_s+"_"+period.end_date.day.to_s
-    query = "select "+checked_name+" from "+PLAN_OWNER+".REZULT_"+code
+    query = "select "+checked_name+" from "+PLAN_OWNER+".REZULT_"+code+" where id=1"
     
     res = PlanDictionary.find_by_sql(query).first
     @is_data_ready = true
   rescue ActiveRecord::StatementInvalid
     @is_data_ready = false    
+  end
+  
+  def get_code_s_by_odb_division_id odb_division_id
+    if odb_division_id == 1
+      return '000'
+    else
+      c = Division.find(odb_division_id).code.to_i
+      return c > 9 ? '0'+c.to_s : '00'+c.to_s 
+    end
   end
   
   def calc_kpi_for_all_divisions period, direction, odb_connect
@@ -1671,6 +1681,11 @@ end;
           facts.clear
           if (not f.plan_descriptor.nil?) and f.plan_descriptor > ''
             case f.plan_descriptor
+              when 'get_plan_from_values'
+                Value.where("period_id=? and factor_id=? and type_id=1", period.id, f.id).order(:division_id).each{|v|
+                    plans[code_by_id[v.division_id]] = v.factor_value.to_f
+#                    ::Rails.logger.info code_by_idv.division_id).to_s+"<++++++++++++++++++++++++++++"
+                  }  
               when 'get_plan_from_values_by_worker'
                 values = Value.select('worker_id, sum(factor_value) as plan').
                   where("period_id=? and factor_id=? and type_id=1",period.id, f.id).group(:worker_id).order(:worker_id)
@@ -1692,7 +1707,8 @@ end;
                 facts.clear
                 cards_account_rest_average.each {|rest|
                   plans[rest.code] = rest.plan
-                  facts[rest.code.to_i] = rest.fact
+                  #facts[rest.code.to_i] = rest.fact
+                  facts[rest.code] = rest.fact
                 }
               when 'get_plan_from_bp_new_by_begin_year'
                 article = Param.where('factor_id=? and action_id=1 and param_description_id=4', f.id).last.value
@@ -1732,7 +1748,8 @@ end;
                 facts.clear
                 overs.each {|o|
                   plans[o.code] = o.plan
-                  facts[o.code.to_i] = o.fact
+                  #facts[o.code.to_i] = o.fact
+                  facts[o.code] = o.fact
                 }
               when 'get_plan_const'  
                 plan = Param.where('factor_id=? and action_id=1 and param_description_id=8', f.id).last.value.to_i
@@ -1784,7 +1801,8 @@ end;
             
                   fin_res = PlanDictionary.find_by_sql(query).last
                   plans[c] = fin_res.plan
-                  facts[c.to_i] = fin_res.fact
+                  #facts[c.to_i] = fin_res.fact
+                  facts[c] = fin_res.fact
                 }
 #  def get_fact_from_res_by_interval fd_division_id, period, factor_id
 #    codes = get_codes fd_division_id
@@ -1823,7 +1841,8 @@ end;
             
                   fin_res = PlanDictionary.find_by_sql(query).last
                   plans[c] = fin_res.plan
-                  facts[c.to_i] = fin_res.fact
+                  #facts[c.to_i] = fin_res.fact
+                  facts[c] = fin_res.fact
                 }
 #select 
 #(r003.MONTH_2011_11_30 - r003.MONTH_2011_10_31) as fact,
@@ -1845,6 +1864,14 @@ end;
             end
           end
           if (not f.fact_descriptor.nil?) and f.fact_descriptor > ''
+            if f.factor_description == 'get_fact_from_values'
+#              Value.select('division_id, sum(factor_value) as fact').where("period_id=? and factor_id=? and type_id=2", period.id, f.id).
+#                group(:division_id).order(:division_id).each{|v|
+              Value.where("period_id=? and factor_id=? and type_id=2", period.id, f.id).
+                order(:division_id).each{|v|
+                  facts[code_by_id[v.division_id]] = v.factor_value.to_f
+                }  
+            end      
             if f.fact_descriptor == 'get_fact_problem_percent_by_worker'  
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
@@ -1963,6 +1990,7 @@ end;
                 period.end_date.to_s+"','yyyy-mm-dd'), 
                 'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
               end;"
+              
               plsql = odb_connect.parse(query)
               plsql.bind_param(':c_cursor', OCI8::Cursor) 
               plsql.exec
@@ -1973,18 +2001,17 @@ end;
               # r[1] => ammount_rest
               # r[2] => ammount_exp
               facts.clear
+              plans.clear
               exp = 0
               rest = 0
               reg_exp = {}
               reg_rest = {}
+              #code = 0
               while r = cursor.fetch()
                 exp = exp+r[2]
                 rest = rest+r[1]+r[2]
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end
+                code = get_code_s_by_odb_division_id(r[0])
+                plans[code] = 0
                 if (direction.level_id == 2) and (r[0].to_i != 1) and (r[0].to_i != 322) # 000 & 019
                   reg_id = get_fd_region_id(r[0])
                   reg_exp[reg_id] = reg_exp[reg_id] ? reg_exp[reg_id]:0+r[2]
@@ -1994,8 +2021,9 @@ end;
                   facts[code] = r[2]*100/(r[1]+r[2])
                 else  
                   facts[code] = 0
-                end  
+                end
               end
+                  
               if rest != 0
                 fact_of_bank = exp*100/rest
               end
@@ -2030,11 +2058,12 @@ end;
               # r[2] => ammount_exp
               facts.clear
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end
+                code = get_code_s_by_odb_division_id r[0]
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end
                 facts[code] = r[1]+r[2]
               end
             end
@@ -2049,7 +2078,8 @@ end;
                 when 3
                   facts.clear
                   code_by_id.each {|division_id, c|
-                    facts[c.to_i] = get_fact_from_values period.id, division_id, f.id
+                    #facts[c.to_i] = get_fact_from_values period.id, division_id, f.id
+                    facts[c] = get_fact_from_values period.id, division_id, f.id
                   }  
               end
             end
@@ -2069,7 +2099,8 @@ end;
               credits = PlanDictionary.find_by_sql(query)
               facts.clear
               credits.each {|credit|
-                facts[credit.code.to_i] = credit.fact
+                #facts[credit.code.to_i] = credit.fact
+                facts[credit.code] = credit.fact
               }
               if business == 'K' # subtract factoring
                 query = "
@@ -2093,12 +2124,8 @@ end;
                 # r[1] => ammount_rest
                 # r[2] => ammount_exp
                 while r = cursor.fetch()
-                  if r[0]==1
-                    code = 0
-                  else
-                    code = Division.find(r[0]).code.to_i
-                  end
-                  facts[code] = facts[code] - (r[1]+r[2])
+                  code = get_code_s_by_odb_division_id(r[0])
+                  facts[code] = (facts[code] ? facts[code] : 0) - (r[1]+r[2])
                 end
               end
             end
@@ -2122,7 +2149,8 @@ end;
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                #code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 facts[code] = r[1]
               end
             end
@@ -2146,7 +2174,8 @@ end;
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                #code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 facts[code] = r[1]
               end
             end
@@ -2154,18 +2183,20 @@ end;
               article = Param.where('factor_id=? and action_id=2 and param_description_id=5', f.id).last.value
               article_id = PlanDictionary.find_by_sql("select id from "+PLAN_OWNER+".directory where namepp in ("+article+")").first.id
               facts.clear
+              e_m = period.end_date.month
+              e_d = period.end_date.day
+              y = period.end_date.year
               code_by_id.each_value {|c|
                 query = ''
-                res = ''
-                e_m = period.end_date.month
-                e_d = period.end_date.day
-                y = period.end_date.year
+                #res = ''
                 query = "select (r"+c+".MONTH_"+y.to_s+"_"+e_m.to_s+"_"+e_d.to_s+
                   " - r"+c+".MONTH_"+y.to_s+"_1_1) as fact from "+PLAN_OWNER+
                   ".REZULT_"+c+" r"+c+" where "+article_id.to_s+"= r"+c+".id_directory"
           
-                fin_res = PlanDictionary.find_by_sql(query).last
-                facts[c.to_i] = fin_res.fact
+                #fin_res = PlanDictionary.find_by_sql(query).last
+                #facts[c.to_i] = fin_res.fact
+                #facts[c] = fin_res.fact
+                facts[c] = PlanDictionary.find_by_sql(query).last.fact
               }
             end
             if f.fact_descriptor == 'get_fact_municipal_by_contract'
@@ -2188,12 +2219,14 @@ end;
               # r[2] => count_payment
               # r[3] => count_payment2
               facts.clear
-              curr_code = 0
+              #curr_code = 0
+              curr_code = ''
               municipal_count = 0
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                #code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 if code != curr_code
-                  if curr_code != 0
+                  if curr_code != ''
                     facts[curr_code] = municipal_count
                     municipal_count = 0
                   end
@@ -2232,7 +2265,8 @@ end;
               plans.clear
               rests.each {|rest|
                 plans[rest.code] = rest.plan
-                facts[rest.code.to_i] = rest.fact
+                #facts[rest.code.to_i] = rest.fact
+                facts[rest.code] = rest.fact
               }
             end
             if f.fact_descriptor == 'get_fact_deposit'
@@ -2251,7 +2285,8 @@ end;
               deposits = PlanDictionary.find_by_sql(query)
               facts.clear
               deposits.each {|fact|
-                facts[fact.code.to_i] = fact.deposit
+                #facts[fact.code.to_i] = fact.deposit
+                facts[fact.code] = fact.deposit
               }
 #              if fd_division_id.to_i == 1
 #               if businnes_code == 'I'
@@ -2285,7 +2320,8 @@ end;
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                #code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 facts[code] = r[1]
               end
             end
@@ -2315,11 +2351,12 @@ end;
               reg_act = {}
               reg_ov = {}
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end  
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -2377,11 +2414,12 @@ end;
               reg_act = {}
               reg_ov = {}
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end  
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -2437,11 +2475,12 @@ end;
               reg_card = {}
               reg_cred = {}
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end  
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -2492,11 +2531,12 @@ end;
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end  
                 facts[code] = r[1]
               end
             end
@@ -2524,7 +2564,8 @@ end;
               
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                #code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 facts[code] = r[1]
               end
             end
@@ -2552,7 +2593,8 @@ end;
               accounts = PlanDictionary.find_by_sql(query)
               facts.clear
               accounts.each {|a|
-                facts[a.code.to_i] = a.acc
+                #facts[a.code.to_i] = a.acc
+                facts[a.code] = a.acc
               }   
               if direction.level_id == 2
                 facts.each {|code, value|
@@ -2595,7 +2637,8 @@ end;
                 act += a.act
                 if a.acc!=0
                   if a.act!=0
-                    facts[a.code.to_i] = a.act*100/a.acc
+                    #facts[a.code.to_i] = a.act*100/a.acc
+                    facts[a.code] = a.act*100/a.acc
                   end
                 end  
                 if (direction.level_id == 2) and (a.code != '000') and (a.code != '019')
@@ -2646,11 +2689,12 @@ end;
               reg_acc = {}
               reg_act = {}
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
+#                if r[0]==1
+#                  code = 0
+#                else
+#                  code = Division.find(r[0]).code.to_i
+#                end  
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -2707,11 +2751,7 @@ end;
               reg_acc = {}
               reg_srv = {}
               while r = cursor.fetch()
-                if r[0]==1
-                  code = 0
-                else
-                  code = Division.find(r[0]).code.to_i
-                end  
+                code = get_code_s_by_odb_division_id(r[0])
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -2762,7 +2802,7 @@ end;
               # r[2] => count
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 facts[code] = r[1]
               end
             end
@@ -2790,7 +2830,7 @@ end;
               # r[4] => amount_active
               facts.clear
               while r = cursor.fetch()
-                code = Division.find(r[0]).code.to_i
+                code = get_code_s_by_odb_division_id(r[0])
                 if (not r[1].nil?) and (r[1]!=0)
                   if r[4].nil?
                     facts[code] = 0
@@ -2855,19 +2895,68 @@ end;
               end
             end
             if f.fact_descriptor == 'get_fact_credit_value_msb'
-              query = "
-                select d.code, sum(dfp.base_amount) credit
-                  from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".division d
-                  where dfp.periods_id=(select id from "+FIN_OWNER+
-                    ".periods where date_from = TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'))
-                    and dfp.credit_deposit_factor_id = 11
-                    and dfp.division_id = d.id
-                    group by d.code order by d.code"            
-              credit_value = PlanDictionary.find_by_sql(query)
+              query = "    
+                select sum(cdv.base_amount) as credit, --Эквивалент
+                --       sum(cdv.plan) as plan,               --План
+                       d.code                              --Код отделения
+                from "+FIN_OWNER+".credit_deposit_value cdv,
+                    "+FIN_OWNER+".credit_deposit_factor cdf,
+                    "+FIN_OWNER+".division d,
+                    "+FIN_OWNER+".periods p,
+                    "+FIN_OWNER+".sr_busines b
+                where cdv.credit_deposit_factor_id = cdf.id
+                  and cdv.division_id = d.id
+                  and p.id = cdv.periods_id
+                  and b.id = cdv.sr_busines_id
+                  and p.date_from = to_date('"+period.end_date.to_s+"','yyyy-mm-dd')
+                  and cdf.type=0 --Тип: 0 - кредиты/ 1 - депозиты
+                  and b.code = 'M' 
+                  group by d.code"    
+              
+#              query = "
+#                select d.code, sum(dfp.base_amount) credit
+#                  from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".division d
+#                  where dfp.periods_id=(select id from "+FIN_OWNER+
+#                    ".periods where date_from = TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'))
+#                    and dfp.credit_deposit_factor_id = 11
+#                    and dfp.division_id = d.id
+#                    group by d.code order by d.code"            
+              #credit_value = PlanDictionary.find_by_sql(query)
               facts.clear
-              credit_value.each {|fact|
-                facts[fact.code.to_i] = fact.credit
+              PlanDictionary.find_by_sql(query).each {|fact|
+                facts[fact.code] = fact.credit
               }
+            end
+            if f.fact_descriptor == 'get_fact_over_average'
+              businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=11', f.id).last.value
+              query = "
+                select d.code, abs(sum(dfp.base_amount)) as base_amount_all
+                  from "+FIN_OWNER+".credit_deposit_value dfp,
+                    "+FIN_OWNER+".division d,
+                    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+                      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree
+                  where  dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
+                    and dfp.division_id = d.id
+                    and dfp.credit_deposit_factor_id =tree.id
+                    and dfp.periods_id="+period.id.to_s+" group by d.code order by d.code"              
+              facts.clear
+              PlanDictionary.find_by_sql(query).each {|over|
+                #facts[over.code.to_i] = over.base_amount_all
+                facts[over.code] = over.base_amount_all
+              }
+            end
+            if f.fact_descriptor == 'get_fact_from_result'
+              direction_id = Param.where('factor_id=? and action_id=2 and param_description_id=12', f.id).last.value
+#              query = "
+#                select division_id, kpi from performances where direction_id = 32 and period_id = 11 and block_id = 0 and calc_date in (
+#                  select max(calc_date) from performances where period_id=11 and direction_id=32 
+#                  group by division_id) order by division_id"
+              facts.clear
+              Performance.where("block_id = 0 and period_id=? and direction_id=? and calc_date in (
+                select max(calc_date) from performances where block_id = 0 and period_id=? and direction_id=? 
+                group by division_id)",period.id, direction_id, period.id, direction_id).order(:division_id).each{|p|
+                  facts[code_by_id[p.division_id]] = p.kpi
+                }
             end
           end
           case direction.level_id 
@@ -2939,12 +3028,13 @@ end;
             fact = fact_of_bank
           end 
         end
-        if factor.factor_description.short_name == "% проблемности" 
-          percent = get_problem_percent(factor_id, fact)
-        else
-          percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
-        end
-        percent = 200 if percent > 200
+        percent = get_percent plan, fact, factor
+#        if factor.factor_description.short_name == "% проблемности" 
+#          percent = get_problem_percent(factor_id, fact)
+#        else
+#          percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
+#        end
+#        percent = 200 if percent > 200
         rate = bw * fw     
         kpi = rate*percent
     
@@ -2953,20 +3043,9 @@ end;
       when 3 # all divisions
         plans.each {|code, value|
           plan = value ? value : 0
-          fact = (not facts[code.to_i].nil?) ? facts[code.to_i] : 0
+          fact = (not facts[code].nil?) ? facts[code] : 0
+          percent = get_percent plan, fact, factor
           rate = bw * fw
-    
-          if factor.factor_description.short_name == "% проблемности" 
-            percent = get_problem_percent(factor_id, fact)
-          else
-            if factor.factor_description_id == 1 # Финансовый результат без учета расходов поддержек
-              percent = get_spec_percent plan, fact
-            else  
-              percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
-#              percent = 200 if percent > 200
-            end
-          end
-          percent = 200 if percent > 200
           kpi = rate*percent
           save_kpi period_id, code_by_id.key(code), direction.id, block_id, factor_id, 
             0, # worker_id, 
@@ -2976,6 +3055,30 @@ end;
     end
   end
   
+  def get_percent plan, fact, factor
+    if factor.factor_description.short_name == "% проблемности" 
+      percent = get_problem_percent(factor.id, fact)
+    else
+      if factor.factor_description_id == 1 # Финансовый результат без учета расходов поддержек
+        percent = get_spec_percent plan, fact
+      else  
+        if (plan == 0) and (fact.to_f <= 0)
+          percent = 0
+        else
+          if (plan == 0) and (fact.to_f > 0)
+            percent = 100
+          else
+            percent = 100*fact.to_f/plan.to_f
+            #percent = ((plan != 0) ? 100*fact.to_f/plan.to_f : 0)
+          end
+        end
+        
+      end
+    end
+    percent = 200 if percent > 200
+    return percent    
+  end
+
   def get_spec_percent plan, fact
     if plan == 0 and fact == 0
       return 100
@@ -3042,13 +3145,14 @@ end;
         end  
         if (factor.factor_description.unit_id != 1) or (factor.block.block_description_id == 2)
           facts_by_regions[parents[code]] = (facts_by_regions[parents[code]].nil? ? 0 : facts_by_regions[parents[code]]).to_f+
-            (facts[code.to_i].nil? ? 0 : facts[code.to_i]).to_f
+            (facts[code].nil? ? 0 : facts[code]).to_f
         end 
       end  
     }
     rate = bw * fw
 
     plans_by_regions.each {|region_id, value| 
+      #percent = get_percent plan, fact, factor
       if Factor.find(factor_id).factor_description.short_name == "% проблемности" 
         percent = get_problem_percent(factor_id, facts_by_regions[region_id])
       else

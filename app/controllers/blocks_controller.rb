@@ -16,6 +16,11 @@ class BlocksController < ApplicationController
   
   def save_weights
     total_weight = 0
+    if params[:new_block][:weight] == ''
+      flash_error :weight_is_empty
+      redirect_to :action => 'new_block', :direction_id => params[:direction_id]
+      return
+    end
     if params[:w]
       params[:w].keys.each  do |id|
         total_weight += params[:w][id.to_s][:weight].to_f
@@ -29,12 +34,14 @@ class BlocksController < ApplicationController
       @blocks = Block.where("direction_id=?",  params[:direction_id])
       if @blocks.size>0
         @blocks.collect { |b|
+        if params[:w][b.id.to_s][:weight].to_f >= 0
           @block_weight = BlockWeight.new
           @block_weight.block_id = b.id
           @block_weight.start_date = Time.now
           @block_weight.weight = params[:w][b.id.to_s][:weight]
           @block_weight.description = params[:new_block][:description]
           @block_weight.save
+        end  
         }
       end
       @block = Block.new
