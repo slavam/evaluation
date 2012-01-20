@@ -58,7 +58,13 @@
         %td= ''
         %td= ''
         %td= p.factor.factor_description.short_name+(p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':'')
-        %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.last.weight*100, :precision => 0)
+        - if p.block.categorization
+          - category_id = p.division.division_branch_id
+          - category_id = 3 if (category_id == 1) or (category_id == 2)
+          - category_id = 4 if (category_id == 5) or (category_id == 6)
+          %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.where("division_category_id=?",category_id).last.weight*100, :precision => 0)
+        - else  
+          %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.last.weight*100, :precision => 0)
         - if @performances[0].direction.level_id == 3
           %td= link_to number_with_precision(p.rate, :precision => 3, :separator => '.'), |
             :action => 'show_kpi_by_divisions', :period_id => p.period_id, :direction_id => p.direction, |

@@ -1,7 +1,10 @@
 # coding: utf-8
+- factors = []
 %h2 Новый показатель
 %h3 Блок: #{@block.block_description.short_name}
-%h3 Шаблон: #{@block.direction.name} 
+%h3 Шаблон: #{@block.direction.name}
+- if @block.categorization
+  %h3 Категория: #{@category.name} 
 %h4 Примечание: сумма весов всех показателей должна равняться 1
 .content
   - form_for 'factors[]', :d, :url => {:action => 'save_weights', :block_id => @block} do |form|
@@ -12,7 +15,11 @@
         %th Описание
         %th План-дескриптор
         %th Факт-дескриптор
-      - for f in @block.factors
+      - if @block.categorization
+        - factors = @block.factors.where("div_category_id = ?", @category.id)
+      - else
+        - factors = @block.factors    
+      - for f in factors
         %tr
           %td= f.factor_description.short_name
           - @w = f.factor_weights.last
@@ -26,6 +33,8 @@
         %td= text_field :new_factor, :description, :size => 20    
         %td= text_field :new_factor, :plan_descriptor, :size => 20
         %td= text_field :new_factor, :fact_descriptor, :size => 20
+        - if @block.categorization
+          %td= hidden_field_tag :category_id, @category.id
       %br	
     = submit_tag "Сохранить"
         

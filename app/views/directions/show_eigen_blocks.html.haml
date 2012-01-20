@@ -9,10 +9,15 @@
       %th Описание
     - for b in @direction.blocks
       %tr
-        %td= link_to b.block_description.short_name, :action => 'show_eigen_factors', :id => b 
+        -# if b.categorization
+          -#%td= link_to b.block_description.short_name, :action => 'category_select', :id => b
+        -# else
+        %td= link_to b.block_description.short_name, :action => 'show_factors', :id => b 
         - bw = b.block_weights.last
         %td= bw.weight
         %td= bw.description
+        - if b.categorization
+          %td Веса показателей зависят от категории отделения
 %br	
 .actions
   = link_to 'Добавить блок', :controller => 'blocks', :action => 'new_block', :direction_id => @direction

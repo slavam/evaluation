@@ -47,6 +47,9 @@ class BlocksController < ApplicationController
       @block = Block.new
       @block.direction_id = params[:direction_id]
       @block.block_description_id = params[:new_block][:block_description_id]
+      if params[:categorization]
+        @block.categorization = true
+      end
       @block.save
       @block_weight = BlockWeight.new
       @block_weight.block_id = @block.id

@@ -21,7 +21,7 @@ Evaluation::Application.routes.draw do
 #  end
   resources :directions do
     collection do
-      get :show_eigen_blocks, :show_eigen_factors, :show_articles
+      get :show_eigen_blocks, :show_eigen_factors, :show_articles, :category_select, :show_factors
     end
   end
 

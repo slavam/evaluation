@@ -244,3 +244,183 @@ Fatal NI connect error 12516, connecting to:
     nt main err code: 0
     nt secondary err code: 0
     nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:51:24
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:51:24
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:53:24
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:53:25
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:53:52
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:53:52
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:54:30
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:54:30
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:55:04
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=SRBANK)(CID=(PROGRAM=C:\Rails\Ruby192\bin\ruby.exe)(HOST=WBCAE-C5B3-387D)(USER=spc2vbr)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.39.253.16)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for 32-bit Windows: Version 10.2.0.1.0 - Production
+	Windows NT TCP/IP NT Protocol Adapter for 32-bit Windows: Version 10.2.0.1.0 - Production
+  Time: 17-яЌ¬-2012 11:55:04
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:соединение отвергнуто
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0

@@ -7,16 +7,19 @@
         %th Название
         %th Вес
         %th Описание
-      - for @b in @blocks
+        %th Категоризация
+      - for b in @blocks
         %tr
-          %td= @b.block_description.short_name
-          - @w = @b.block_weights.last
-          %td= text_field :w, :weight, :index => @b.id, :size => 4
+          %td= b.block_description.short_name
+          - @w = b.block_weights.last
+          %td= text_field :w, :weight, :index => b.id, :size => 4
           %td= @w.description
+          %td= b.categorization? ? "Да" : ""
       %tr
         %td= select :new_block, :block_description_id, BlockDescription.all.collect {|bd| [ bd.short_name, bd.id ] }
         %td= text_field :new_block, :weight, :size => 4
         %td= text_field :new_block, :description, :size => 50 
+        %td= check_box_tag(:categorization) 
       %br
     = submit_tag "Сохранить"
     

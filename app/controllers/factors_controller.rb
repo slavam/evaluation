@@ -17,6 +17,9 @@ class FactorsController < ApplicationController
   end
   
   def new_factor
+    if @block.categorization
+      @category = CategoryOfDivision.find params[:category][:category_id]
+    end
     @factor = Factor.new
   end
   
@@ -32,7 +35,11 @@ class FactorsController < ApplicationController
       flash_error :weight_is_wrong
       redirect_to :action => 'new_factor', :block_id => params[:block_id]
     else 
-      @factors = @block.factors
+      if @block.categorization
+        @factors = @block.factors.where("div_category_id = ?", params[:category_id])
+      else
+        @factors = @block.factors
+      end  
       if @factors.size>0
         @factors.collect { |f|
           @factor_weight = FactorWeight.new
@@ -48,6 +55,9 @@ class FactorsController < ApplicationController
       @factor.factor_description_id = params[:new_factor][:factor_description_id]
       @factor.plan_descriptor = params[:new_factor][:plan_descriptor]
       @factor.fact_descriptor = params[:new_factor][:fact_descriptor]
+      if @block.categorization
+        @factor.div_category_id = params[:category_id]        
+      end
       @factor.save
       @factor_weight = FactorWeight.new
       @factor_weight.factor_id = @factor.id
@@ -55,7 +65,11 @@ class FactorsController < ApplicationController
       @factor_weight.start_date = Time.now
       @factor_weight.description = params[:new_factor][:description]
       @factor_weight.save
-      redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+      if @block.categorization
+        redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id], :category => {:category_id => params[:category_id]}
+      else
+        redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+      end  
     end
   end
   

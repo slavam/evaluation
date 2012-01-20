@@ -1,0 +1,23 @@
+# coding: utf-8
+%h2 Показатели блока "#{@block.block_description.short_name}" 
+%h3 Шаблон: #{link_to @block.direction.short_name, :action => "show_eigen_blocks", :id => @block.direction.id}
+- if @block.categorization
+  %h4 Примечание: веса показателей зависят от категории отделения
+.content
+  %table.data
+    %tr
+      %th Название
+    - for f in @factors
+      %tr
+        -# if @block.categorization
+          -#%td= link_to f.factor_description.short_name, :action => :show_articles, :id => f, :category => {:category_id => f.div_category_id}
+        -# else  
+        %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
+%br	
+.actions
+  -# if @block.categorization
+    -#= link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block, :category => {:category_id => @category.id}
+  -# else
+  = link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block  
+  %br  
+  = link_to 'Изменить веса', :controller => 'factors', :action => 'edit_weights', :block_id => @block

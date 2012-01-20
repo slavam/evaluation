@@ -1,13 +1,17 @@
 # coding: utf-8
 %h2 Показатель "#{@factor.factor_description.short_name}" 
-%h3 Блок: #{link_to @factor.block.block_description.short_name, :action => "show_eigen_factors", :id => @factor.block_id} 
+%h3 Блок: #{link_to @factor.block.block_description.short_name, :action => "show_factors", :id => @factor.block_id} 
 %h3 Шаблон: #{link_to @factor.block.direction.name, :action => "show_eigen_blocks", :id => @factor.block.direction.id}
-
+- weights = []
 .content
   %table.data
     %tr
       %th Вес:
-      %td= @factor.factor_weights.last.weight
+      - if @factor.block.categorization
+        - @factor.factor_weights.where("division_category_id is not null").each {|w| weights << w.weight.to_s+'('+CategoryOfDivision.find(w.division_category_id).code+')' }
+        %td= weights.join(', ')
+      - else
+        %td= @factor.factor_weights.last.weight
     %tr  
       %th Описание:
       %td= @factor.factor_weights.last.description

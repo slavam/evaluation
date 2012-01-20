@@ -1,0 +1,12 @@
+# coding: utf-8
+%h2 Выберите категорию отделений
+
+.content
+  - form_for :report, :url => { :action => "show_eigen_factors" }, :html => {:method => "get"} do 
+    %table
+      %tr
+        %th= "Категория:"
+        %td= select :category, "category_id", CategoryOfDivision.all.collect {|c| [ c.name, c.id ] }
+        %td= hidden_field_tag :id, @block.id
+            
+    = submit_tag "Продолжить"

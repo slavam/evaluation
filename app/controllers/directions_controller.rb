@@ -1,20 +1,38 @@
 # coding: utf-8
 class DirectionsController < ApplicationController
   before_filter :find_direction, :only => [:destroy, :edit, :update, :show_eigen_blocks]
-  before_filter :find_block, :only => :show_eigen_factors
+  before_filter :find_block, :only => [:show_eigen_factors, :category_select, :show_factors]
   before_filter :find_factor, :only => :show_articles
   def index
     @directions = Direction.order(:name)
   end
 
+  def category_select
+  end
+
   def show_eigen_blocks
   end
 
-  def show_eigen_factors
+  def show_factors
     @factors = @block.factors.order(:factor_description_id)
+  end
+  
+  def show_eigen_factors
+    @factors = []
+    if @block.categorization
+      @category = CategoryOfDivision.find( params[:category][:category_id])
+      @block.factors.each {|f|
+        @factors << f if f.div_category_id == params[:category][:category_id].to_i
+      }
+    else
+      @factors = @block.factors.order(:factor_description_id)
+    end
   end
 
   def show_articles
+#    if @factor.block.categorization 
+#      @category_id = params[:category][:category_id]
+#    end
   end
   
   def new
