@@ -1,29 +1,23 @@
 # coding: utf-8
-%h2 Изменение весов показателей 
+%h2 Добавить веса 
 %h3 Блок: #{@block.block_description.short_name} 
 %h3 Шаблон: #{@block.direction.short_name} 
-- if @block.categorization
-  %h3 Категория: #{@category.name}
 %h4 Примечание: сумма весов всех показателей должна равняться 1
-%h4 Примечание: для удаления показателя обнулите его вес
 .content
   - form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|
+    = label_tag(:description, "Описание:")
+    = text_field_tag :description, '', :size => 50
+    %br
     %table.data
       %tr
         %th Название
         %th Вес
-        %th Описание
       - for f in @block.factors
         %tr
           %td= f.factor_description.short_name
-          - if @block.categorization
-            - @w = f.factor_weights.where("division_category_id=?", @category.id).last
-          - else  
-            - @w = f.factor_weights.last
+          - @w = f.factor_weights.last
           %td= text_field :w, :weight, :index => f.id, :size => 5
-          %td= text_field :w, :description, :index => f.id, :size => 20
-          - if @block.categorization
-            %td= hidden_field_tag :category_id, @category.id
+          
       %br	
     = submit_tag "Сохранить"
         

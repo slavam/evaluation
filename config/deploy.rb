@@ -1,6 +1,6 @@
 require 'bundler/capistrano'
 set :application, "kpi"
-set :deploy_to, "/usr/local/www/apache22/data/#{application}"
+set :deploy_to, "/var/www/html/#{application}"
 set :user, 'morhachov'
 set :use_sudo, false
 
@@ -25,6 +25,7 @@ set :repository, "."
 set :deploy_via, :copy
 #set :checkout, 'export'
 
+#set :server_name, "web2-d00.adir.vbr.ua"
 set :server_name, "web2-d00.adir.vbr.ua"
 role :web, server_name                          # Your HTTP server, Apache/etc
 role :app, server_name                          # This may be the same as your `Web` server

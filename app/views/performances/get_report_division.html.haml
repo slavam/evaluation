@@ -1,7 +1,9 @@
 # coding: utf-8
 - if @direction.level_id == 2
+  -@title = "Выбор дирекции"
   %h2 Выберите дирекцию для просмотра KPI 
 - else
+  -@title = "Выбор отделения"
   %h2 Выберите отделение для просмотра KPI  
 %h3 Период: #{@period.description}
 %h3 Направление: #{@direction.short_name}
@@ -16,7 +18,6 @@
         - else
           %th= "Отделение:"
           %td= select :report_params, "division_id", BranchOfBank.where('(id = 40 or parent_id > 1 or parent_id is null) and open_date is not null').order(:parent_id, :code).collect {|d| [ (d.division_parent ? d.division_parent.name : 'Отделение')+' - '+d.name, d.id ] }
-          -#%td= select :report_params, "division_id", BranchOfBank.find_by_sql(" select p.id id, p.name name, d.name parent from fin.division d join FIN.division p on d.id = p.parent_id where p.code < '900' and d.code > '000' order by d.code, p.code").collect {|d| [ d.parent+' - '+d.name, d.id ] }
         %td= hidden_field_tag :direction_id, @direction.id
         %td= hidden_field_tag :period_id, @period.id
     %br    

@@ -9,8 +9,8 @@ Evaluation::Application.routes.draw do
   end
   resources :factors do
     collection do
-      get :new_factor, :edit_weights, :edit_descriptor
-      post :save_weights, :save_updated_weights, :save_descriptor
+      get :new_factor, :edit_weights, :edit_descriptor, :add_weights
+      post :save_weights, :save_updated_weights, :save_descriptor, :save_factor
     end
   end
   resources :factor_descriptions

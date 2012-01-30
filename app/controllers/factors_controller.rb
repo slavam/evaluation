@@ -1,6 +1,6 @@
 # coding: utf-8
 class FactorsController < ApplicationController
-  before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights]
+  before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights, :save_factor, :add_weights]
   before_filter :find_factor, :only => [:edit_descriptor, :save_descriptor]
   
   def show
@@ -17,12 +17,28 @@ class FactorsController < ApplicationController
   end
   
   def new_factor
-    if @block.categorization
-      @category = CategoryOfDivision.find params[:category][:category_id]
-    end
+#    if @block.categorization
+#      @category = CategoryOfDivision.find params[:category][:category_id]
+#    end
     @factor = Factor.new
   end
+ 
+  def save_factor
+    @factor = Factor.new
+    @factor.block_id = params[:block_id]
+    @factor.factor_description_id = params[:new_factor][:factor_description_id]
+    @factor.plan_descriptor = params[:new_factor][:plan_descriptor]
+    @factor.fact_descriptor = params[:new_factor][:fact_descriptor]
+#    if @block.categorization
+#      @factor.div_category_id = params[:category_id]        
+#    end
+    @factor.save
+    redirect_to :controller => 'directions', :action => 'show_factors', :id => params[:block_id]
+  end
   
+  def add_weights
+    
+  end
   def save_weights
     total_weight = 0
     if params[:w]
@@ -74,6 +90,10 @@ class FactorsController < ApplicationController
   end
   
   def edit_weights
+    if @block.categorization
+      @category = CategoryOfDivision.find params[:category][:category_id]
+    end
+    
   end
   
   def save_updated_weights
@@ -93,10 +113,13 @@ class FactorsController < ApplicationController
           @factor_weight.start_date = Time.now
           @factor_weight.weight = params[:w][f.id.to_s][:weight]
           @factor_weight.description = params[:w][f.id.to_s][:description]
+          if @block.categorization
+            @factor_weight.division_category_id = params[:category_id]
+          end
           @factor_weight.save
         }
       end
-      redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => params[:block_id]
+      redirect_to :controller => 'directions', :action => 'show_factors', :id => params[:block_id]
     end
   end
  

@@ -22,6 +22,7 @@ personnel:
   password: 1q2w3e4r5t
 
 development:
+#production:
   adapter: postgresql
   database: evaluation_development
   username: postgres
@@ -39,8 +40,8 @@ test:
   pool: 5
   timeout: 5000
 
-production:
-  adapter: sqlite3
-  database: db/production.sqlite3
-  pool: 5
-  timeout: 5000
+#production:
+#  adapter: sqlite3
+#  database: db/production.sqlite3
+#  pool: 5
+#  timeout: 5000

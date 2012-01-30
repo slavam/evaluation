@@ -8,7 +8,7 @@
     %tr
       %th Вес:
       - if @factor.block.categorization
-        - @factor.factor_weights.where("division_category_id is not null").each {|w| weights << w.weight.to_s+'('+CategoryOfDivision.find(w.division_category_id).code+')' }
+        - @factor.factor_weights.where("division_category_id is not null and start_date in (select max(start_date) from factor_weights where factor_id=? and division_category_id is not null group by division_category_id )", @factor.id).each {|w| weights << w.weight.to_s+'('+CategoryOfDivision.find(w.division_category_id).code+')' }
         %td= weights.join(', ')
       - else
         %td= @factor.factor_weights.last.weight

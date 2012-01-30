@@ -2,7 +2,11 @@
 !!! strict
 %html
   %head
-    %title VBR-Bank
+    %title= @title
+    
+    -#%title VBR-Bank
+    -#%title= content_for(:title)
+    
     %meta{ 'http-equiv' => 'Content-Type', :content => 'text/html; charset=UTF-8' }
     = stylesheet_link_tag 'application'
     = javascript_include_tag 'http://code.jquery.com/jquery-1.5.js', 'rails', 'application', 'highcharts'
@@ -11,6 +15,7 @@
 
   %body
   #header
+    %br
     %h2 ВСЕУКРАИНСКИЙ БАНК РАЗВИТИЯ
   #search
     
@@ -26,15 +31,11 @@
           - else
             %div{'style' => "float: left;"}
               = render :partial => 'layouts/menuItem', :collection => [ |
-                ['Персонал',  workers_path], |
-                ['Подразделения',  subdivisions_path], |
                 ['Отделения (ФД)',  branch_of_banks_path], | 
                 ['Отделения (ОДБ)',  divisions_path], |
                 ['Шаблоны',  directions_path], | 
-                ['Показатели', factor_descriptions_path], |
-                ['Параметры', param_descriptions_path], |
-                ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'], | 
-                ['Расчет KPI',  :controller => 'performances', :action => 'get_calc_params'] |
+                ['Расчет KPI',  :controller => 'performances', :action => 'get_calc_params'], |
+                ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'] | 
               ] |
             - 
             -##div{'style' => "float: left;margin-left: 30px"}
@@ -44,6 +45,13 @@
                 -#['Domains', '#'], |
                 -#['Google apps', '#'], |
                 -#['Other', '#'] |
+
+                -#['Персонал',  workers_path], |
+                -#['Подразделения',  subdivisions_path], |
+                -#['Шаблоны',  directions_path], | 
+                -#['Показатели', factor_descriptions_path], |
+                -#['Параметры', param_descriptions_path], |
+                -#['Расчет KPI',  :controller => 'performances', :action => 'get_calc_params'] |
                 
                 -#['Показатели', factors_path], |
                 -#['Блоки', blocks_path], |

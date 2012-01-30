@@ -17,11 +17,13 @@ html, body {
     padding: 15px 0 15px 30px; }
 
 #header {
-  height:150px;
-  font-size: 17pt;
+  height:100px;
+  margin-top: 5px;
+  margin-left: 10px;
+  font-size: 15pt;
   color: #01544a;
   text-align:center;
-  background: #f1fff1 url(../images/logo.jpg) no-repeat;
+  background: #f1fff1 url(../images/logo.gif) no-repeat;
 }
 #footer {
   color: #110000;

@@ -1,4 +1,6 @@
 # coding: utf-8
+-@title = "Параметры расчета" 
+
 %h2 Задайте параметры для расчета KPI
 
 .content
@@ -9,6 +11,6 @@
         %td= select :report_params, "period_id", Period.all.collect {|p| [ p.description, p.id ] }
       %tr
         %th= "Шаблон:"
-        %td= select :report_params, "direction_id", Direction.order(:name).collect {|o| [ o.name, o.id ] }
+        %td= select :report_params, "direction_id", Direction.where("visible != false").order(:name).collect {|o| [ o.name, o.id ] }
             
     = submit_tag "Рассчитать"

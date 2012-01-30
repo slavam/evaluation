@@ -15,9 +15,11 @@
         %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
 %br	
 .actions
-  -# if @block.categorization
-    -#= link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block, :category => {:category_id => @category.id}
-  -# else
+  
   = link_to 'Добавить показатель', :controller => 'factors', :action => 'new_factor', :block_id => @block  
-  %br  
-  = link_to 'Изменить веса', :controller => 'factors', :action => 'edit_weights', :block_id => @block
+  %br
+  - if @factors.size>0
+    - if @block.categorization
+      = link_to 'Изменить веса', :controller => 'directions', :action => 'category_select', :id => @block  
+    - else
+      = link_to 'Изменить веса', :controller => 'factors', :action => 'edit_weights', :block_id => @block
