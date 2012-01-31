@@ -1,6 +1,7 @@
 source 'http://rubygems.org'
 
-gem 'rails', '3.0.9'
+#gem 'rails', '3.0.9'
+gem 'rails', '3.2.1'
 
 # Bundle edge Rails instead:
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
@@ -11,7 +12,9 @@ gem 'pg', :require => 'pg'
 gem 'prawn', :submodules => true
 gem 'activerecord-sqlserver-adapter'
 gem 'ruby-odbc'
-gem 'will_paginate', '2.3.15'
+#gem "will_paginate", :git => "https://github.com/p7r/will_paginate.git", :branch => "rails3"
+#gem 'will_paginate', '2.3.15'
+gem 'will_paginate', '~> 3.0'
 gem 'ruby-oci8'
 gem 'activerecord-oracle_enhanced-adapter'
 gem 'ruby-plsql'

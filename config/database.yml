@@ -18,6 +18,7 @@ personnel:
   dsn: sqlexpress
   host: localhost
   database: PxSuite
+#  provider: MSDASQL
   username: vbrdoc
   password: 1q2w3e4r5t
 
