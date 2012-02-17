@@ -2,7 +2,7 @@
   = submit
   шаблон
 .content
-  - form_for @direction do |form|
+  = form_for @direction do |form|
     %table.card
       %tr
         %th Полное название:
@@ -13,6 +13,9 @@
       %tr
         %th Уровень:
         %td= select :levels, "level_id", options_for_select(Level.all.collect {|l| [l.name, l.id]}, @direction.level_id)
+      %tr
+        %th Видимость:
+        %td= form.check_box :visible
     %br
   
     = submit_tag submit

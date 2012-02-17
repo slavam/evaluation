@@ -5,7 +5,7 @@
 %h4 Шаблон: #{@factor.block.direction.name} 
 
 .content
-  - form_for @article, :url => {:action => 'save_article', :factor_id => @factor} do |form|
+  = form_for @article, :url => {:action => 'save_article', :factor_id => @factor} do |form|
     %table.card
       %tr
         %th Обозначение:

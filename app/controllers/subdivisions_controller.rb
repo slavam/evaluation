@@ -3,7 +3,6 @@ class SubdivisionsController < ApplicationController
   before_filter :find_department, :only => [:my_show, :edit, :update, :destroy]
   def index
     @subdivisions = Subdivision.select([:id_division, :parent_id, :division, :code_division]).order(:id_division).paginate :page => params[:page], :per_page => 20
-#    @subdivisions = Subdivision.find_by_sql("select division, code_division, id_division from div2doc").paginate :page => params[:page], :per_page => 20
   end
   
   def my_show

@@ -9,7 +9,7 @@
 %h3 Направление: #{@direction.short_name}
 
 .content
-  - form_for :report_params, :url => {:action => "show_report", 'report_params' => {'period_id' => @period.id}}, :html => {:method => "get"} do 
+  = form_for :report_params, :url => {:action => "show_report", 'report_params' => {'period_id' => @period.id}}, :html => {:method => "get"} do 
     %table
       %tr
         - if @direction.level_id == 2

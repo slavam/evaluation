@@ -11,6 +11,7 @@ ru:
     created: "{{name}} объект был создан"
     updated: "Объект был изменен"
     destroyed: "{{name}} was destroyed"
+    added: "Данные для показателя добавлены"
 
     user_session:
       created: Успешный вход в систему

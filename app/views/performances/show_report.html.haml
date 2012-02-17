@@ -17,7 +17,7 @@
 - average_percent = 0
 - i = 0
 - kpi_total = 0
-- kpi_result = 0
+- kpi_result = 0 
 .content
   %table.data
     %tr
@@ -96,8 +96,8 @@
         - average_percent += p.exec_percent
         %td{style: 'text-align: right'}= |
           link_to number_with_precision(p.kpi, :precision => 3, :separator => '.'), |
-          :action => 'show_values', :division_id => p.division_id, :direction_id => p.direction, |
-          :factor_id => p.factor , :worker_id => p.employee_id |
+          :action => 'get_interval', :division_id => p.division_id, :direction_id => p.direction, |
+          :factor_id => p.factor, :worker_id => p.employee_id, :period_id => p.period_id |
         - kpi_total += p.kpi 
     %tr
       %td{:colspan => 2}= ''
@@ -117,7 +117,9 @@
       %td{style: 'text-align: right; font-weight: bold'}= |
         link_to number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.'), |
         :action => 'show_final_kpi', :division_id => p.division_id, :direction_id => p.direction_id |
-
+%br	
+.actions
+  = link_to 'Экспорт в XLS', :action => 'kpi_as_xls', :period_id => @performances[0].period_id, :direction_id => @performances[0].direction_id, :division_id => @performances[0].division_id
 -#.actions
   -#=link_to 'Распечатать', :action => 'report_print', :period_id => @performances[0].period_id, :division_id => @performances[0].division_id, :direction_id => @performances[0].direction_id, :format => 'pdf'
  

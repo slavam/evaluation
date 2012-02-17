@@ -3,7 +3,7 @@
 %h2 Задайте параметры для просмотра KPI
 
 .content
-  - form_for :report, :url => { :action => "get_report_params_2" }, :html => {:method => "get"} do 
+  = form_for :report, :url => { :action => "get_report_params_2" }, :html => {:method => "get"} do 
     %table
       %tr
         %th= "Период:"

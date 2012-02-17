@@ -1,11 +1,12 @@
 # coding: utf-8
+require 'spreadsheet'
 class PerformancesController < ApplicationController
   before_filter :find_direction, :only => [:get_report_division, :get_report_worker, :get_calc_division, :get_calc_worker]
-  before_filter :find_period, :only => [:get_report_division, :get_report_worker, :get_calc_division, :get_calc_worker]
+  before_filter :find_period, :only => [:get_report_division, :get_report_worker, :get_calc_division, :get_calc_worker, :kpi_as_xls]
   PLAN_OWNER = 'RPK880508'
   FACT_OWNER = 'SR_BANK'
   FIN_OWNER  = 'FIN'
-  @is_data_ready = true
+#  @is_data_ready = true
   def index
     @performances = Performance.order(:period_id, :direction_id, :division_id, :block_id, :factor_id)
   end
@@ -35,6 +36,12 @@ class PerformancesController < ApplicationController
   end
   
   def show_values
+    p_f = params[:report_params][:period_from] 
+    p_t = params[:report_params][:period_to]
+    if p_f.to_i > p_t.to_i
+      p_f = params[:period_id]
+      p_t = params[:period_id]
+    end
     if Direction.find(params[:direction_id]).level_id == 4
       @values = Performance.where('division_id=? and direction_id=? and factor_id=?  and employee_id=? and calc_date in(
         select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? and employee_id=? 
@@ -42,12 +49,17 @@ class PerformancesController < ApplicationController
         params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id],
         params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id]).order(:period_id)   
     else
-      @values = Performance.where('division_id=? and direction_id=? and factor_id=? and calc_date in(
-        select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? 
+      @values = Performance.where('division_id=? and direction_id=? and factor_id=? and period_id between ? and ? and calc_date in(
+        select max(calc_date) from performances where division_id=? and direction_id=? and factor_id=? and period_id between ? and ? 
         group by period_id order by period_id)',
-        params[:division_id], params[:direction_id], params[:factor_id],
-        params[:division_id], params[:direction_id], params[:factor_id]).order(:period_id)
+        params[:division_id], params[:direction_id], params[:factor_id], p_f, p_t,
+        params[:division_id], params[:direction_id], params[:factor_id], p_f, p_t).order(:period_id)
     end  
+  end
+  
+  def get_interval
+    @division_id, @direction_id, @factor_id, @worker_id, @period_id = 
+      params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id], params[:period_id]
   end
   
   def show_kpi_by_divisions
@@ -183,6 +195,130 @@ class PerformancesController < ApplicationController
       end
     end
   end
+
+  def kpi_as_xls
+    number_helper = Object.new.extend(ActionView::Helpers::NumberHelper)
+    
+    get_kpi params[:period_id], params[:division_id], params[:direction_id], 0
+    y_m = @period.start_date.year.to_s+(@period.start_date.month<10 ? '0'+@period.start_date.month.to_s : @period.start_date.month.to_s)
+    code = params[:division_id] == '999' ? '999' : BranchOfBank.find(params[:division_id]).code
+    filename = "kpi_"+y_m+"_"+code+"_"+params[:direction_id]+".xls"
+    tempfile = Tempfile.new(filename)
+    book = Spreadsheet::Workbook.new
+    sheet1 = book.create_worksheet
+    sheet1.name = "KPI"
+    sheet1.column(0).width = 12
+    sheet1.column(1).width = 7                                     
+    sheet1.column(2).width = 30
+    sheet1.column(3).width = 12
+    sheet1.column(4).width = 6
+    sheet1.column(5).width = 14
+    sheet1.column(6).width = 14
+    sheet1.column(7).width = 13
+    sheet1.column(8).width = 8
+    format = Spreadsheet::Format.new :horizontal_align => :right
+    sheet1.column(4).default_format = format
+    sheet1.column(5).default_format = format
+    sheet1.column(6).default_format = format
+    sheet1.column(7).default_format = format
+    sheet1.column(8).default_format = format
+    sheet1.row(0).push '', '', "Оценка эффективности деятельности"
+    if params[:division_id] == '999'
+      sheet1.row(1).push 'Отделение:', 'По всему банку'
+    else
+      sheet1.row(1).push 'Отделение:', @performances[0].division.name
+    end
+    
+    sheet1.row(2).push 'Шаблон:', @performances[0].direction.name
+    sheet1.row(3).push 'Период:', @performances[0].period.description
+
+    format = Spreadsheet::Format.new :color => :black,
+                                   :weight => :bold,
+                                   :size => 12
+    sheet1.row(0).default_format = format
+    format = Spreadsheet::Format.new :color => :black,
+                                   :weight => :bold,
+                                   :size => 10,
+                                   :align => :justify
+    sheet1.row(5).default_format = format
+    sheet1.row(5).height = 24
+    sheet1.row(5).push 'Блок', 'Вес блока', 'Показатель', 'Вес показателя', 'Доля', 'План', 'Факт', 'Процент выполнения', 'KPI'
+    
+    i = 0
+    j = 0
+    block_name = ''
+    factor_total = 0
+    average_percent = 0
+    kpi_total = 0
+    kpi_result = 0
+    format = Spreadsheet::Format.new :align => :justify
+    sheet1.column(0).default_format = format
+    sheet1.column(2).default_format = format
+    @performances.each {|p|
+      if p.block.categorization
+        category_id = p.division.division_branch_id
+        category_id = 3 if (category_id == 1) or (category_id == 2)
+        category_id = 4 if (category_id == 5) or (category_id == 6)
+      end  
+      if p.block.block_description.name != block_name
+        if block_name > ''
+          sheet1.row(6+j).set_format(2, (Spreadsheet::Format.new :weight => :bold, :horizontal_align => :left))
+          format = Spreadsheet::Format.new :weight => :bold, :horizontal_align => :right
+          sheet1.row(6+j).default_format = format
+          sheet1.row(6+j).push '', '', 'ИТОГО', '', 
+            number_helper.number_with_precision(factor_total, :precision => 3, :separator => '.'), '', '', 
+            number_helper.number_with_precision(average_percent/i, :precision => 3, :separator => '.'), 
+            number_helper.number_with_precision(kpi_total, :precision => 3, :separator => '.')
+          j += 1
+        end
+        sheet1.row(6+j).push p.block.block_description.short_name, p.block.block_weights.last.weight*100
+        block_name = p.block.block_description.name
+        factor_total = 0
+        average_percent = 0
+        i = 0
+        kpi_result += kpi_total
+        kpi_total = 0.0
+        j += 1
+      end
+      case p.factor.factor_description.unit.name 
+        when 'грн.' then 
+          plan = number_helper.number_to_currency(p.plan, :unit => "", :format => "%n %u")
+          fact = number_helper.number_to_currency(p.fact, :unit => "", :format => "%n %u")
+        when '%' then  
+          plan = number_helper.number_with_precision(p.plan, :precision => 3, :separator => '.')
+          fact = number_helper.number_with_precision(p.fact, :precision => 3, :separator => '.')
+        else          
+          plan = number_helper.number_with_precision(p.plan, :precision => 0, :separator => '.')
+          fact = number_helper.number_with_precision(p.fact, :precision => 0, :separator => '.')
+      end
+      
+      sheet1.row(6+j).push '', '', p.factor.factor_description.short_name+
+        (p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':''),
+        (p.block.categorization ? p.factor.factor_weights.where("division_category_id=?",category_id).last.weight*100 : p.factor.factor_weights.last.weight*100),
+        number_helper.number_with_precision(p.rate, :precision => 3, :separator => '.'), 
+        plan, fact, 
+        number_helper.number_with_precision(p.exec_percent, :precision => 3, :separator => '.'), 
+        number_helper.number_with_precision(p.kpi, :precision => 3, :separator => '.')
+      j += 1
+      i += 1
+      factor_total+=p.rate
+      average_percent += p.exec_percent
+      kpi_total += p.kpi
+    }
+    format = Spreadsheet::Format.new :weight => :bold, :horizontal_align => :right
+    sheet1.row(6+j).set_format(2, (Spreadsheet::Format.new :weight => :bold, :horizontal_align => :left))
+    sheet1.row(6+j).default_format = format
+    sheet1.row(6+j).push '', '', 'ИТОГО', '', 
+      number_helper.number_with_precision(factor_total, :precision => 3, :separator => '.'), '', '', 
+      number_helper.number_with_precision(average_percent/i, :precision => 3, :separator => '.'), 
+      number_helper.number_with_precision(kpi_total, :precision => 3, :separator => '.')
+    sheet1.row(6+j+1).set_format(0, (Spreadsheet::Format.new :weight => :bold, :horizontal_align => :left))  
+    sheet1.row(6+j+1).default_format = format
+    sheet1.row(6+j+1).push 'ИТОГО', '', '', '', '', '', '', '', 
+    number_helper.number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.')
+    book.write(tempfile.path)
+    send_file tempfile.path, :filename => filename        
+  end
   
   private
 
@@ -193,52 +329,32 @@ class PerformancesController < ApplicationController
     return pr ? pr.result_value : 0  
   end
   
-  def get_plans start_date, end_date, codes
-    res = ''
-    codes.each {|c|
-      for i in start_date.month..end_date.month
-        res = res+'r'+c+'.plan_'+i.to_s+'+'
-      end
-    }
-    return res[0, res.length-1]
-  end
-
-#  def get_plan_fin_res_2 period, codes, article
-#    query =
-#      "select id from "+PLAN_OWNER+".directory d where d.namepp in ("+article+")"
-#    article_id = PlanDictionary.find_by_sql(query).last.id
-#    query = ''
-#    query = "select ("+get_plans(period.start_date.beginning_of_year, period.end_date, codes)+
-#      ") as plan from "+make_from(codes)+
-#      " where "+make_where(codes, article_id.to_s)
-#    return PlanDictionary.find_by_sql(query).last.plan
+#  def get_plans start_date, end_date, codes
+#    res = ''
+#    codes.each {|c|
+#      for i in start_date.month..end_date.month
+#        res = res+'r'+c+'.plan_'+i.to_s+'+'
+#      end
+#    }
+#    return res[0, res.length-1]
 #  end
 
-#  def build_sql_for_results period_id, codes, article_name 
-#    p = Period.find(period_id)
-#
-#    return  "select ("+get_plans(p.start_date.beginning_of_year, p.end_date, codes)+
-#      ") as plan from "+PLAN_OWNER+".directory d "+
-#      get_joins_for_result(codes)+
-#      " where d.namepp in ("+article_name+")"    
+#  def get_fd_ids division_id
+#    fd_ids = []
+#    if division_id == '999' #'1' # whole the bank
+#      BranchOfBank.select(:id).where("open_date is not null").collect { 
+#        |d| fd_ids << d.id
+#      }  
+#    else
+#      division = BranchOfBank.find division_id
+#      if division.parent_id == 1 and not division.open_date.nil?
+#        BranchOfBank.select(:id).where("parent_id=? and open_date is not null", division_id).collect {|d| fd_ids << d.id}
+#      else
+#        fd_ids << division.id
+#      end
+#    end
+#    return fd_ids
 #  end
-
-  def get_fd_ids division_id
-    fd_ids = []
-    if division_id == '999' #'1' # whole the bank
-      BranchOfBank.select(:id).where("open_date is not null").collect { 
-        |d| fd_ids << d.id
-      }  
-    else
-      division = BranchOfBank.find division_id
-      if division.parent_id == 1 and not division.open_date.nil?
-        BranchOfBank.select(:id).where("parent_id=? and open_date is not null", division_id).collect {|d| fd_ids << d.id}
-      else
-        fd_ids << division.id
-      end
-    end
-    return fd_ids
-  end
 
   def get_codes division_id
     codes = []
@@ -256,33 +372,6 @@ class PerformancesController < ApplicationController
     end
     return codes
   end
-
-#  def get_joins_for_bp codes
-#    res = ''
-#    codes.each {|c|
-#      res = res+" join "+PLAN_OWNER+".bp_"+c+" bp"+c+" on s.id = bp"+c+".id_sprav "
-#    }              
-#    return res
-#  end
-  
-#  def get_balances_plan period, division_id
-#    fd_ids = []
-#    fd_ids = get_fd_ids division_id
-#    
-#    s = "
-#      select sum(dfp.plan) plan
-#        from "+FIN_OWNER+".credit_deposit_value dfp
-#      where
-#        dfp.periods_id in
-#         (select p.id from "+FIN_OWNER+".periods p where p.type_period='M'
-#          and p.date_from between TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd') 
-#          and TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'))         
-#        and dfp.credit_deposit_factor_id = 24 
-#        and dfp.sr_currency_id like '3386'
-#        and dfp.division_id in ("+fd_ids.join(',')+")"
-#    @plan = PlanDictionary.find_by_sql(s).last
-#    return @plan ? @plan.plan : 0
-#  end
   
   def get_plan_from_values_by_worker period_id, worker_id, factor_id
     p = Value.select('sum(factor_value) as plan').
@@ -305,124 +394,12 @@ class PerformancesController < ApplicationController
     return res[0, res.length-1]+')'
   end
      
-#  def get_odb_division_ids division_id
-#    codes = []
-#    odb_ids = []
-#    codes = get_codes division_id
-## need divide 000 and 002    
-#    is_go = false
-#    codes.each {|c|
-#      if not(is_go and (c == '000' or c == '002'))
-#        d = Division.find_by_code ((c == '000' or c == '002') ? 1 : c.to_i)
-#        if d
-#          odb_ids << d.id
-#        end  
-#      end
-#      if c == '000' or c == '002'
-#        is_go = true
-#      end 
-#    }
-#    return odb_ids
-#  end
-
   def get_fact_from_values period_id, division_id, factor_id
     f = Value.select('sum(factor_value) as fact').
       where("period_id=? and division_id=? and factor_id=? and type_id=2", period_id, division_id, factor_id).first  
     return f.fact
   end
 
-  
-#  def get_codes_divisions_as_str division_id
-#    codes = []
-#    codes = get_codes division_id
-#    return codes.join(',')
-#  end
-  
-  
-#  def get_fact_current_accounts fd_division_id, period_id, factor_id
-#    if fd_division_id == 1
-#      s = " where "
-#    else  
-#      s = ", (SELECT d.id, d.name, d.code FROM "+FIN_OWNER+".division d
-#          where d.fact=1 and d.code in ("+get_codes_divisions_as_str(fd_division_id)+")) div
-#        where dfp.division_id = div.id and "
-#    end
-#    businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 11).last.value
-#    query = "
-#      select abs(sum(dfp.base_amount)) as base_amount_all
-#        from "+FIN_OWNER+".credit_deposit_value dfp,
-#    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
-#      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =20) tree"+s+" 
-#    dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
-#    and dfp.credit_deposit_factor_id =tree.id
-#    and dfp.periods_id="+period_id.to_s    
-#    fact = PlanDictionary.find_by_sql(query).last
-#    return fact.base_amount_all   
-#  end
-  
-#  def get_selected_fields start_date, end_date, codes
-#    res = ''
-#    s_y = start_date.year.to_s+"_"
-#    e_y = end_date.year.to_s+"_"
-#    s_d = start_date.month.to_s+'_'+start_date.day.to_s
-#    e_d = end_date.month.to_s+'_'+end_date.day.to_s
-#    codes.each {|c|
-#      res = res + "(r"+c+".MONTH_"+e_y+e_d+" - r"+c+".MONTH_"+s_y+s_d+")+"
-#    }  
-#    return res[0,res.length-1]
-#  end    
-  
-#  def get_fact_from_res_by_interval fd_division_id, period, factor_id
-#    codes = get_codes fd_division_id
-#    article = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 5).last.value
-#    end_date = period.end_date
-#    start_date = period.start_date.prev_month.end_of_month
-#    query = "select ("+get_selected_fields(start_date, end_date, codes)+
-#      ") as fact from "+PLAN_OWNER+".directory d "+
-#      get_joins_for_result(codes)+
-#      " where d.namepp in ("+article+")"
-#    return PlanDictionary.find_by_sql(query).first.fact
-#  end
-  
-#  def get_fact_credit_value period, factor_id, codes 
-#    business = Param.where('factor_id=? and action_id=2 and param_description_id=?', factor_id, 11).last.value
-#    query = "
-#      select sum(dfp.base_amount) fact
-#        from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".division d
-#        where dfp.periods_id=(select id from "+FIN_OWNER+
-#          ".periods where date_from = TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'))
-#          and dfp.credit_deposit_factor_id = (
-#            select id from "+FIN_OWNER+".credit_deposit_factor
-#              where parent_id = 1 and sr_busines_id =
-#                (select id from "+FIN_OWNER+".sr_busines where code = '"+business+"'))                    
-#          and dfp.division_id = d.id 
-#          and d.code in ("+codes.join(',')+")"    
-#    f = PlanDictionary.find_by_sql(query).last
-#    return f.fact   
-#  end
-  
-#  def get_fact_credit_value_msb period, codes
-#    query = "
-#      select sum(dfp.base_amount) fact
-#        from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".division d
-#        where dfp.periods_id=(select id from "+FIN_OWNER+
-#          ".periods where date_from = TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'))
-#          and dfp.credit_deposit_factor_id = 11
-#          and dfp.division_id = d.id
-#          and d.code in ("+codes.join(',')+")"
-#    f = PlanDictionary.find_by_sql(query).last
-#    return f.fact   
-#  end
-  
-    
-#  def get_fact_from_odb odb_connect, query
-#    plsql = odb_connect.parse(query)
-#    plsql.bind_param(':l_res', nil, Float)
-#    plsql.exec
-#    fact = plsql[':l_res'] ? plsql[':l_res'] : 0
-#    plsql.close
-#    return fact
-#  end
 =begin            
 
 >>Выполнение плана по количеству открытых счетов на отчетную дату
@@ -550,15 +527,15 @@ class PerformancesController < ApplicationController
     @period = Period.find params[:period_id]    
   end
 
-  def is_collumn_in_table code, period
-    checked_name = "MONTH_"+period.end_date.year.to_s+"_"+period.end_date.month.to_s+"_"+period.end_date.day.to_s
-    query = "select "+checked_name+" from "+PLAN_OWNER+".REZULT_"+code+" where id=1"
-    
-    res = PlanDictionary.find_by_sql(query).first
-    @is_data_ready = true
-  rescue ActiveRecord::StatementInvalid
-    @is_data_ready = false    
-  end
+#  def is_collumn_in_table code, period
+#    checked_name = "MONTH_"+period.end_date.year.to_s+"_"+period.end_date.month.to_s+"_"+period.end_date.day.to_s
+#    query = "select "+checked_name+" from "+PLAN_OWNER+".REZULT_"+code+" where id=1"
+#    
+#    res = PlanDictionary.find_by_sql(query).first
+#    @is_data_ready = true
+#  rescue ActiveRecord::StatementInvalid
+#    @is_data_ready = false    
+#  end
   
   def get_code_s_by_odb_division_id odb_division_id
     if odb_division_id == 1
@@ -632,36 +609,60 @@ class PerformancesController < ApplicationController
                 }
               when 'get_plan_from_bp_new_by_begin_year'
                 article = Param.where('factor_id=? and action_id=1 and param_description_id=4', f.id).last.value
-                query ="    
-                  select d.code, "+make_fields_list(period.start_date.beginning_of_year, period.end_date)+" plan from
-                     "+FIN_OWNER+".factor f,
-                     "+FIN_OWNER+".bud_value v,
-                     "+FIN_OWNER+".bud_prefix p,
-                     "+FIN_OWNER+".division d
-                   where f.id = v.factor_id(+)
-                     and v.bud_prefix_id = p.id
-                     and p.id = 4 
-                     and f.code in ("+article+")
-                     and v.division_id = d.id
-                     and d.code in ("+code_by_id.values.join(',')+") group by d.code"
-                plan_by_code = PlanDictionary.find_by_sql(query)
-                plan_by_code.each {|p|
-                  plans[p.code] = p.plan
+                code_by_id.each_value {|c|
+                  query = "
+                    select "+make_fields_list(period.start_date.beginning_of_year, period.end_date)+
+                      " plan from "+PLAN_OWNER+".bp_"+c+" v where id_sprav in
+                      (select id from "+PLAN_OWNER+".bp_sprav s where s.namepp in ("+article+"))"                
+                  p = PlanDictionary.find_by_sql(query).last
+                  plans[c] = p.plan
                 }
-              when 'get_plan_over_average' # plan & fact
+#                query ="    
+#                  select d.code, "+make_fields_list(period.start_date.beginning_of_year, period.end_date)+" plan from
+#                     "+FIN_OWNER+".factor f,
+#                     "+FIN_OWNER+".bud_value v,
+#                     "+FIN_OWNER+".bud_prefix p,
+#                     "+FIN_OWNER+".division d
+#                   where f.id = v.factor_id(+)
+#                     and v.bud_prefix_id = p.id
+#                     and p.id = 4 
+#                     and f.code in ("+article+")
+#                     and v.division_id = d.id
+#                     and d.code in ("+code_by_id.values.join(',')+") group by d.code"
+#                plan_by_code = PlanDictionary.find_by_sql(query)
+#                plan_by_code.each {|p|
+#                  plans[p.code] = p.plan
+#                }
+
+              when 'get_plan_fact_over_average' # plan & fact
                 business = Param.where('factor_id=? and action_id=1 and param_description_id=11', f.id).last.value
-                query = "  
+                query = "
                   select div.code, abs(sum(dfp.base_amount)) as fact, sum(dfp.plan) plan
-                    from "+FIN_OWNER+".credit_deposit_value dfp,
-                      (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
-                        CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree,
-                      (SELECT d.id, d.code FROM "+FIN_OWNER+".division d
-                            where d.fact=1 and d.code in ("+code_by_id.values.join(',')+")) div
-                    where 
-                      dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+business+"')
-                      and dfp.division_id = div.id
-                      and dfp.credit_deposit_factor_id =tree.id
-                      and dfp.periods_id="+period.id.to_s+" group by div.code"
+                  from "+FIN_OWNER+".credit_deposit_value dfp, "+FIN_OWNER+".periods p,
+                    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+                      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree,
+                    (select id, code from "+FIN_OWNER+".division where open_date is not null) div
+                  where
+                    dfp.sr_busines_id like (select id from FIN.sr_busines where code = '"+business+"')
+                    and dfp.division_id = div.id
+                    and p.id = dfp.periods_id
+                    and dfp.credit_deposit_factor_id =tree.id
+                    and dfp.periods_id in (select id from fin.periods p 
+                      where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
+                  group by div.code"
+                
+#                query = "  
+#                  select div.code, abs(sum(dfp.base_amount)) as fact, sum(dfp.plan) plan
+#                    from "+FIN_OWNER+".credit_deposit_value dfp,
+#                      (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+#                        CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree,
+#                      (SELECT d.id, d.code FROM "+FIN_OWNER+".division d
+#                            where d.fact=1 and d.code in ("+code_by_id.values.join(',')+")) div
+#                    where 
+#                      dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+business+"')
+#                      and dfp.division_id = div.id
+#                      and dfp.credit_deposit_factor_id =tree.id
+#                      and dfp.periods_id="+period.id.to_s+" group by div.code"
                 overs = PlanDictionary.find_by_sql(query)
                 facts.clear
                 overs.each {|o|
@@ -676,20 +677,22 @@ class PerformancesController < ApplicationController
                 }
               when 'get_plan_from_bp_new'
                 article = Param.where('factor_id=? and action_id=1 and param_description_id=4', f.id).last.value
-                #plans.clear
                 code_by_id.each_value {|c|
                   query = "
-                    select sum(v.mes"+period.end_date.month.to_s+") plan from
-                      "+FIN_OWNER+".factor f, 
-                      "+FIN_OWNER+".bud_value v,
-                      "+FIN_OWNER+".bud_prefix p,
-                      "+FIN_OWNER+".division d
-                      where f.id = v.factor_id(+)
-                      and v.bud_prefix_id = p.id
-                      and p.id = 4 /*с учетом всех корректировок*/
-                      and f.code in ("+article+")
-                      and v.division_id = d.id
-                      and d.code in ("+c+")"
+                    select sum(mes"+period.end_date.month.to_s+") plan from "+PLAN_OWNER+".bp_"+c+" where id_sprav in
+                      (select id from "+PLAN_OWNER+".bp_sprav s where s.namepp in ("+article+"))"                
+#                  query = "
+#                    select sum(v.mes"+period.end_date.month.to_s+") plan from
+#                      "+FIN_OWNER+".factor f, 
+#                      "+FIN_OWNER+".bud_value v,
+#                      "+FIN_OWNER+".bud_prefix p,
+#                      "+FIN_OWNER+".division d
+#                      where f.id = v.factor_id(+)
+#                      and v.bud_prefix_id = p.id
+#                      and p.id = 4 /*с учетом всех корректировок*/
+#                      and f.code in ("+article+")
+#                      and v.division_id = d.id
+#                      and d.code in ("+c+")"
                   p = PlanDictionary.find_by_sql(query).last
                   plans[c] = p.plan
                 }
@@ -924,6 +927,9 @@ class PerformancesController < ApplicationController
                 exp = exp+r[2]
                 rest = rest+r[1]+r[2]
                 code = get_code_s_by_odb_division_id(r[0])
+                if (code == '000') and (f.id == 235) # problem with codes 000 and 002
+                  code = '002'
+                end
                 if (direction.level_id == 2) and (r[0].to_i != 1) and (r[0].to_i != 322) # 000 & 019
                   reg_id = get_fd_region_id(r[0])
                   reg_exp[reg_id] = reg_exp[reg_id] ? reg_exp[reg_id]:0+r[2]
@@ -1156,7 +1162,9 @@ class PerformancesController < ApplicationController
                   where dfp.division_id = div.id and
                     dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
                     and dfp.credit_deposit_factor_id =tree.id
-                    and dfp.periods_id="+period.id.to_s+" group by div.code order by div.code"
+                    and dfp.periods_id in (select id from fin.periods p 
+                      where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
+                  group by div.code order by div.code"
               rests = PlanDictionary.find_by_sql(query)
               facts.clear
               rests.each {|rest|
@@ -1437,18 +1445,17 @@ class PerformancesController < ApplicationController
                 from "+FIN_OWNER+".credit_deposit_value cdv,
                   "+FIN_OWNER+".credit_deposit_factor cdf,
                   "+FIN_OWNER+".division d,
-                  "+FIN_OWNER+".periods p,
                   "+FIN_OWNER+".sr_busines b,
                   "+FIN_OWNER+".sr_currency c
                 where cdv.credit_deposit_factor_id = cdf.id
                   and cdv.division_id = d.id
-                  and p.id = cdv.periods_id
                   and b.id = cdv.sr_busines_id
                   and c.id = cdv.sr_currency_id
                   and cdf.type=2 --Тип - текущие счета
                   and b.code = 'K'
                   and c.short_name = 'UAH'
-                  and p.id ="+period.id.to_s+" 
+                  and cdv.periods_id in (select id from fin.periods p 
+                      where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                 group by d.code order by d.code"
               accounts = PlanDictionary.find_by_sql(query)
               facts.clear
@@ -1471,18 +1478,17 @@ class PerformancesController < ApplicationController
                 from "+FIN_OWNER+".credit_deposit_value cdv,
                   "+FIN_OWNER+".credit_deposit_factor cdf,
                   "+FIN_OWNER+".division d,
-                  "+FIN_OWNER+".periods p,
                   "+FIN_OWNER+".sr_busines b,
                   "+FIN_OWNER+".sr_currency c
                 where cdv.credit_deposit_factor_id = cdf.id
                   and cdv.division_id = d.id
-                  and p.id = cdv.periods_id
                   and b.id = cdv.sr_busines_id
                   and c.id = cdv.sr_currency_id
                   and cdf.type=2 --Тип - текущие счета
                   and b.code = 'K'
                   and c.short_name = 'UAH'
-                  and p.id ="+period.id.to_s+" 
+                  and cdv.periods_id in (select id from fin.periods p 
+                    where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                 group by d.code order by d.code"
               accounts = PlanDictionary.find_by_sql(query)
               facts.clear
@@ -1652,6 +1658,9 @@ class PerformancesController < ApplicationController
               facts.clear
               while r = cursor.fetch()
                 code = get_code_s_by_odb_division_id(r[0])
+                if (code == '000') and (f.id == 240) and (program_names == 'KZPK') # Сумма зачислений з/п по коммерческим зарплатным проектам
+                  code = '002'
+                end
                 facts[code] = r[1]
               end
             end
@@ -1766,23 +1775,23 @@ class PerformancesController < ApplicationController
                 facts[fact.code] = fact.credit
               }
             end
-            if f.fact_descriptor == 'get_fact_over_average'
-              businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=11', f.id).last.value
-              query = "
-                select d.code, abs(sum(dfp.base_amount)) as base_amount_all
-                  from "+FIN_OWNER+".credit_deposit_value dfp,
-                    "+FIN_OWNER+".division d,
-                    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
-                      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree
-                  where  dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
-                    and dfp.division_id = d.id
-                    and dfp.credit_deposit_factor_id =tree.id
-                    and dfp.periods_id="+period.id.to_s+" group by d.code order by d.code"              
-              facts.clear
-              PlanDictionary.find_by_sql(query).each {|over|
-                facts[over.code] = over.base_amount_all
-              }
-            end
+#            if f.fact_descriptor == 'get_fact_over_average'
+#              businnes_code = Param.where('factor_id=? and action_id=2 and param_description_id=11', f.id).last.value
+#              query = "
+#                select d.code, abs(sum(dfp.base_amount)) as base_amount_all
+#                  from "+FIN_OWNER+".credit_deposit_value dfp,
+#                    "+FIN_OWNER+".division d,
+#                    (SELECT ID FROM "+FIN_OWNER+".credit_deposit_factor t
+#                      CONNECT BY PRIOR t.ID = t.PARENT_ID START WITH id =25) tree
+#                  where  dfp.sr_busines_id like (select id from "+FIN_OWNER+".sr_busines where code = '"+businnes_code+"')
+#                    and dfp.division_id = d.id
+#                    and dfp.credit_deposit_factor_id =tree.id
+#                    and dfp.periods_id="+period.id.to_s+" group by d.code order by d.code"              
+#              facts.clear
+#              PlanDictionary.find_by_sql(query).each {|over|
+#                facts[over.code] = over.base_amount_all
+#              }
+#            end
             if f.fact_descriptor == 'get_fact_from_result'
               direction_id = Param.where('factor_id=? and action_id=2 and param_description_id=12', f.id).last.value
               facts.clear
@@ -1796,18 +1805,17 @@ class PerformancesController < ApplicationController
                 article = Param.where('factor_id=? and action_id=2 and param_description_id=5', f.id).last.value
                 business = Param.where('factor_id=? and action_id=2 and param_description_id=11', f.id).last.value
                 query = "
-                  select fpv.division_id, 
-                    sum(decode(fpv.period_id, p_b.id, fpv.value, -fpv.value)) as fact
+                  select division_id, sum(decode(fpv.period_id, p_b.id, fpv.value, -fpv.value)) as fact
                   from "+FIN_OWNER+".finres_value fpv,
                   (select id from "+FIN_OWNER+".periods p where p.date_to = to_date('"+
-                    period.start_date.yesterday.to_s+"','yyyy-mm-dd') and p.type_period = 'D') p_b,
+                    (period.end_date.month == 1 ? period.start_date.to_s :
+                    period.start_date.yesterday.to_s)+"','yyyy-mm-dd') and p.type_period = 'D') p_b,
                   (select id from "+FIN_OWNER+".periods p where p.date_from = to_date('"+
                     period.end_date.to_s+"','yyyy-mm-dd') and p.type_period = 'D') p_e
                   where fpv.period_id in (p_b.id, p_e.id)
                     and fpv.sr_busines_id in (select id from "+FIN_OWNER+".sr_busines where code = '"+business+"')
-                    and fpv.finres_directory_id in (select id from "+FIN_OWNER+".finres_directory where code = "+article+")
-                  group by fpv.division_id
-                  order by division_id"
+                    and fpv.finres_directory_id in (select id from "+FIN_OWNER+".finres_directory where code in ("+article+"))
+                  group by division_id order by division_id"
                 facts.clear
                 PlanDictionary.find_by_sql(query).each {|fr|
                   facts[code_by_id[fr.division_id]] = fr.fact
@@ -1834,7 +1842,7 @@ class PerformancesController < ApplicationController
     factor = Factor.find(factor_id)
     @workers.each {|w|
       code = w.code_division[0, 3]
-      fullname = w.lastname.to_utf+' '+w.firstname.to_utf+' '+w.soname.to_utf
+      fullname = w.lastname+' '+w.firstname+' '+w.soname
       if plans_by_worker[w.id.to_i] and not plans_by_worker[w.id.to_i].nil?
         plan = plans_by_worker[w.id.to_i]
       else

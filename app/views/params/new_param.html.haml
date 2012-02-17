@@ -1,6 +1,6 @@
 %h2 Новый параметр для формирования #{@action.id == 1 ? "плана" : "факта"} показателя #{@factor.factor_description.short_name} 
 .content
-  - form_for @parameter, :url => {:action => 'save_param'} do |form|
+  = form_for @parameter, :url => {:action => 'save_param'} do |form|
     %table.card
       %tr
         %th Название:

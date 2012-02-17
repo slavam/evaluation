@@ -1,0 +1,20 @@
+# coding: utf-8
+-@title = "Выбор интервала времени"
+%h2 Выберите интервал времени для просмотра KPI  
+.content
+  = form_for :report, :url => {:action => "show_values"}, :html => {:method => "get"} do 
+    %table
+      %tr
+        %th= "Начало интервала:"
+        %td= select :report_params, "period_from", Period.all.collect {|p| [ p.description, p.id ] }
+      %tr
+        %th= "Конец интервала:"
+        %td= select :report_params, "period_to", Period.all.collect {|p| [ p.description, p.id ] }
+        %td= hidden_field_tag :division_id, @division_id
+        %td= hidden_field_tag :direction_id, @direction_id
+        %td= hidden_field_tag :factor_id, @factor_id 
+        %td= hidden_field_tag :worker_id, @worker_id
+        %td= hidden_field_tag :period_id, @period_id
+            
+    = submit_tag "Продолжить"
+		

@@ -8,12 +8,12 @@
       %td= @department.id_division
     %tr
       %th Название:
-      %td= @department.division.to_utf
+      %td= @department.division
     %tr
       %th Код:
       %td= @department.code_division
     - if @department.parent_id
       %tr 
         %th Вышестоящее подразделение
-        %td= @maindivision.division.to_utf
+        %td= @maindivision.division
       

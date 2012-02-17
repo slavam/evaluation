@@ -37,7 +37,7 @@ Evaluation::Application.routes.draw do
         :report_print, :get_calc_params, :get_calc_division, 
         :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, 
         :show_kpi_by_divisions, :show_final_kpi, :show_final_kpi_for_division,
-        :show_final_kpi_for_direction
+        :show_final_kpi_for_direction, :kpi_as_xls, :get_interval
     end
   end
 
@@ -54,7 +54,11 @@ Evaluation::Application.routes.draw do
   
   resources :businesses
   resources :actions
-  resources :divisions
+  resources :divisions do
+    collection do
+      get :save_as_xls
+    end
+  end
   resources :levels
 #  match '/values/destroy', :controller => 'values', :action => 'destroy'
 
@@ -62,8 +66,8 @@ Evaluation::Application.routes.draw do
   resources :values do
 #    delete :destroy, :on => :member
     collection do
-      get :add_data_by_division, :add_data_by_worker, :show_values_by_factor, :delete_value
-      post :save_value
+      get :add_data_by_division, :add_data_by_worker, :show_values_by_factor, :delete_value, :get_values_params, :new_data
+      post :save_value, :save_data
 #      delete :delete_value
     end
   end

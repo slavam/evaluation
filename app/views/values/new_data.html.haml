@@ -1,0 +1,27 @@
+# coding: utf-8
+-@title = "Ввод данных" 
+%h2 Ввод данных
+%h3 Показатель: #{@factor.factor_description.short_name}
+%h3 Шаблон: #{@factor.block.direction.short_name}
+%h3 Период: #{@period.description}
+
+.content
+  = form_for :value, :url => { :action => "save_data" }, :html => {:method => "post"} do |form| 
+    %table
+      %tr
+        %th= "Название"
+        - if @factor.plan_descriptor == 'get_plan_from_values'
+          %th= "План"
+        - if @factor.fact_descriptor == 'get_fact_from_values'
+          %th= "Факт"
+        %td= hidden_field_tag :period_id, @period.id
+        %td= hidden_field_tag :factor_id, @factor.id  
+      - for d in @divisions
+        %tr
+          %td= d.name
+          - if @factor.plan_descriptor == 'get_plan_from_values'
+            %td= form.text_field :factor_value, :index => [1,d.id], :size => 10
+          - if @factor.fact_descriptor == 'get_fact_from_values'
+            %td= form.text_field :factor_value, :index => [2,d.id], :size => 10
+            
+    = submit_tag "Сохранить"

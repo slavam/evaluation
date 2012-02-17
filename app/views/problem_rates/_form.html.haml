@@ -1,7 +1,7 @@
 %h2= submit +" интервал"
 %h3 Шаблон: #{@factor.block.direction.short_name}
 .content
-  - form_for @interval do |form|
+  = form_for @interval do |form|
     %table.card
       %tr
         %th Начало интервала:

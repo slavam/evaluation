@@ -95,8 +95,11 @@ GEM
       json (~> 1.4)
     ruby-oci8 (2.1.0-x86-mingw32)
     ruby-odbc (0.99994)
+    ruby-ole (1.2.11.2)
     ruby-plsql (0.4.4)
     ruby-rc4 (0.1.4)
+    spreadsheet (0.6.8)
+      ruby-ole (>= 1.0)
     sprockets (2.1.2)
       hike (~> 1.2)
       rack (~> 1.0)
@@ -124,4 +127,5 @@ DEPENDENCIES
   ruby-oci8
   ruby-odbc
   ruby-plsql
+  spreadsheet
   will_paginate (~> 3.0)

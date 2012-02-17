@@ -4,7 +4,7 @@
 %h3 Шаблон: #{@block.direction.short_name} 
 %h4 Примечание: сумма весов всех показателей должна равняться 1
 .content
-  - form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|
+  = form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|
     = label_tag(:description, "Описание:")
     = text_field_tag :description, '', :size => 50
     %br

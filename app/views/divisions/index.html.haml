@@ -13,5 +13,5 @@
         %td= d.code
         %td= d.name
 %br	
--#.actions
-  -#= link_to 'Добавить', :action => 'new'         
+.actions
+  = link_to 'Экспорт в XLS', :action => 'save_as_xls'         

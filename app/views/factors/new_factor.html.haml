@@ -4,7 +4,7 @@
 %h3 Блок: #{@block.block_description.short_name}
 %h3 Шаблон: #{@block.direction.name}
 .content
-  - form_for 'factors[]', :d, :url => {:action => 'save_factor', :block_id => @block} do |form|
+  = form_for 'factors[]', :d, :url => {:action => 'save_factor', :block_id => @block} do |form|
     %table.data
       %tr
         %th Название

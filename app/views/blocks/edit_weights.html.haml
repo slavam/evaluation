@@ -1,7 +1,7 @@
 %h1 Изменение весов блоков для шаблона "#{@direction.name}"
 %h4 Примечание: сумма весов всех блоков должна равняться 1
 .content
-  - form_for 'blocks[]', :d, :url => {:action => 'save_updated_weights', :direction_id => @direction} do |form|
+  = form_for 'blocks[]', :d, :url => {:action => 'save_updated_weights', :direction_id => @direction} do |form|
     %table.data
       %tr
         %th Название

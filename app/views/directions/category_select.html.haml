@@ -2,7 +2,7 @@
 %h2 Выберите категорию отделений
 
 .content
-  - form_for :report, :url => {:controller => 'factors', :action => "edit_weights" }, :html => {:method => "get"} do 
+  = form_for :report, :url => {:controller => 'factors', :action => "edit_weights" }, :html => {:method => "get"} do 
     %table
       %tr
         %th= "Категория:"

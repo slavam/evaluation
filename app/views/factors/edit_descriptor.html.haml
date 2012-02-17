@@ -5,7 +5,7 @@
 %h3 Шаблон: #{@factor.block.direction.short_name} 
  
 .content
-  - form_for @factor do |form|
+  = form_for @factor do |form|
     %table.data
       %tr
         %th План-дескриптор

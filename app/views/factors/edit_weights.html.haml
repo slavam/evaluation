@@ -7,7 +7,7 @@
 %h4 Примечание: сумма весов всех показателей должна равняться 1
 %h4 Примечание: для удаления показателя обнулите его вес
 .content
-  - form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|
+  = form_for 'factors[]', :d, :url => {:action => 'save_updated_weights', :block_id => @block} do |form|
     %table.data
       %tr
         %th Название

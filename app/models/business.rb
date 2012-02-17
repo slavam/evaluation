@@ -1,3 +1,3 @@
 class Business < Commerce
-  set_table_name "FIN.BUSINESS"
+  self.table_name = "FIN.BUSINESS"
 end

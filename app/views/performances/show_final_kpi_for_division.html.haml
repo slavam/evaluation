@@ -69,7 +69,10 @@
     %tr
       %th Отделение
       %th{style: 'text-align: center'} KPI
+      - if @values[0].direction_id == 35 
+        %th Надбавка
       %th Дата расчета
+    - round_kpi = 0.0  
     - for v in @values.order(:kpi)
       %tr
         - if v.division_id == 999
@@ -81,5 +84,36 @@
           :action => 'show_report', :report_params => {:period_id => v.period_id, :division_id => v.division_id, :direction_id => v.direction_id} |
         -
         %td{style: 'text-align: right'}= number_with_precision(v.kpi, :precision => 4, :separator => '.')
+        - if @values[0].direction_id == 35
+          - round_kpi = v.kpi - (v.kpi % 5)
+          - if v.kpi < 60.0
+            - bonus = number_with_precision(v.kpi, :precision => 2, :separator => '.')
+          - else
+            - if round_kpi <= 70.0
+              - bonus = 100
+            - else
+              - if round_kpi == 75.0
+                - bonus = 110
+              - else
+                - if round_kpi == 80.0
+                  - bonus = 120
+                - else
+                  - if round_kpi == 85.0
+                    - bonus = 130
+                  - else
+                    - if round_kpi == 90.0
+                      - bonus = 140
+                    - else
+                      - if round_kpi == 95.0
+                        - bonus = 150
+                      - else
+                        - if round_kpi == 100.0
+                          - bonus = 160
+                        - else
+                          - if round_kpi == 105.0
+                            - bonus = 170
+                          - else
+                            - bonus = 180
+          %td{style: 'text-align: right'}= bonus
         %td= v.calc_date.to_date
         

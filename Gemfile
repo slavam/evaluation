@@ -18,6 +18,7 @@ gem 'will_paginate', '~> 3.0'
 gem 'ruby-oci8'
 gem 'activerecord-oracle_enhanced-adapter'
 gem 'ruby-plsql'
+gem 'spreadsheet'
 
 
 # Use unicorn as the web server

@@ -1,0 +1,17 @@
+# coding: utf-8
+-@title = "Параметры ручного ввода" 
+
+%h2 Задайте параметры ручного ввода
+
+.content
+  = form_for :report, :url => { :action => "new_data" }, :html => {:method => "get"} do 
+    %table
+      %tr
+        %th= "Период:"
+        %td= select :data_params, "period_id", Period.all.collect {|p| [ p.description, p.id ] }
+      %tr
+        %th= "Показатель:"
+        %td= select :data_params, "factor_id", @factors.collect {|f| [f.d_name+' - '+ f.f_name, f.id ] }
+        -#%td= select :report_params, "factor_id", Factor.where("plan_descriptor = 'get_plan_from_values' or fact_descriptor = 'get_fact_from_values'").order(:block_id, :id).collect {|f| [f.block.direction.short_name+' - '+f.factor_description.short_name, f.id ] }
+            
+    = submit_tag "Продолжить"

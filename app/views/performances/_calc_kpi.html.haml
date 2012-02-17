@@ -2,7 +2,7 @@
 %h1 #{@performance.kpi}
 
 .content
-  - form_for :report, :url => { :action => "calc_kpi" }, :html => {:method => "get"} do 
+  = form_for :report, :url => { :action => "calc_kpi" }, :html => {:method => "get"} do 
     %table
       -# for p in @plans
         -#%tr

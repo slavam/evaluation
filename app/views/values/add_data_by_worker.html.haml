@@ -2,7 +2,7 @@
 %h3 Блок: #{@factor.block.block_description.short_name}
 %h3 Шаблон: #{@factor.block.direction.short_name}
 .content
-  - form_for @value, :url => {:action => :save_value} do |form|
+  = form_for @value, :url => {:action => :save_value} do |form|
     %table.card
       %tr
         %th Период:
@@ -12,7 +12,7 @@
         %td= form.select :type_id, Action.all.collect {|a| [ a.name, a.id ] }
       %tr
         %th Сотрудник:
-        %td= form.select :worker_id, Worker.find_by_sql(" select e.id_emp id, e.lastname lastname, e.firstname firstname, e.soname soname, p.division parent from emp2doc e join div2doc d on d.id_division = e.id_division join div2doc p on p.id_division = d.parent_id where e.id_division = 56922 or e.code_division like '%8000' order by e.lastname").collect {|d| [ d.lastname.to_utf+' '+d.firstname.to_utf+' '+d.soname.to_utf+' - '+d.parent.to_utf, d.id ] }
+        %td= form.select :worker_id, Worker.find_by_sql(" select e.id_emp id, e.lastname lastname, e.firstname firstname, e.soname soname, p.division parent from emp2doc e join div2doc d on d.id_division = e.id_division join div2doc p on p.id_division = d.parent_id where e.id_division = 56922 or e.code_division like '%8000' order by e.lastname").collect {|d| [ d.lastname+' '+d.firstname+' '+d.soname+' - '+d.parent, d.id ] }
       %tr
         %th Значение:
         %td= form.text_field :factor_value
