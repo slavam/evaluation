@@ -34,9 +34,6 @@ class DirectionsController < ApplicationController
   end
 
   def show_articles
-#    if @factor.block.categorization 
-#      @category_id = params[:category][:category_id]
-#    end
   end
   
   def new
