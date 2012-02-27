@@ -1,6 +1,14 @@
 Evaluation::Application.routes.draw do
   # The priority is based upon order of creation:
   # first created -> highest priority.
+  resources :user_sessions do
+    collection do
+      get :destroy
+    end
+  end
+
+  resources :users
+  resource :profile
   resources :blocks do
     collection do
       get :new_block, :edit_weights

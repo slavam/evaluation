@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/subversion/!svn/ver/671/tuba/app/views/user_sessions
+END
+create.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/subversion/!svn/ver/657/tuba/app/views/user_sessions/create.html.haml
+END
+destroy.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/subversion/!svn/ver/657/tuba/app/views/user_sessions/destroy.html.haml
+END
+new.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/subversion/!svn/ver/671/tuba/app/views/user_sessions/new.html.haml
+END

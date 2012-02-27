@@ -19,6 +19,9 @@ gem 'ruby-oci8'
 gem 'activerecord-oracle_enhanced-adapter'
 gem 'ruby-plsql'
 gem 'spreadsheet'
+gem 'authlogic'
+#gem "rake", "0.8.7"
+
 
 
 # Use unicorn as the web server

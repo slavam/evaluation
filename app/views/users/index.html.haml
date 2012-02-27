@@ -1,0 +1,17 @@
+%h1 User list
+
+.content
+  %table.data
+    %tr
+      %th Login
+      %th Email
+    - for user in @users
+      %tr
+        %td 
+          = link_to h(user.login), :action => 'show', :id => user.id
+        %td 
+          =h user.email
+  
+  .actions
+    = link_to 'Add', :action => 'new'
+  

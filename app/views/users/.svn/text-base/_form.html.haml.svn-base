@@ -1,0 +1,23 @@
+%h1
+  = submit
+  User
+.content
+  - form_for @user do |form|
+    = form.error_messages
+    %table
+      %tr
+        %th 
+          = form.label :login
+        %td
+          = form.text_field :login
+      %tr
+        %th
+          = form.label :email
+        %td
+          = form.text_field :email
+      %tr
+        %th
+          = form.label :active
+        %td
+          = form.check_box :active
+    = submit_tag submit 

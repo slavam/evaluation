@@ -1,5 +1,6 @@
 # coding: utf-8
 class DirectionsController < ApplicationController
+  before_filter :require_user  
   before_filter :find_direction, :only => [:destroy, :edit, :update, :show_eigen_blocks]
   before_filter :find_block, :only => [:show_eigen_factors, :category_select, :show_factors]
   before_filter :find_factor, :only => :show_articles
@@ -14,7 +15,10 @@ class DirectionsController < ApplicationController
   end
 
   def show_factors
-    @factors = @block.factors.order(:factor_description_id)
+    @factors = []
+    @block.factors.each {|f| 
+      @factors << f if (f.factor_weights.size > 0) and (f.factor_weights.last.weight > 0) 
+    }
   end
   
   def show_eigen_factors

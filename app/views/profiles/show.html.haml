@@ -1,0 +1,20 @@
+%h1  
+  Hello, 
+  =h @current_user.login
+
+%table.card
+  %tr
+    %th
+      Login:
+    %td
+      =h @current_user.login
+  %tr
+    %th
+      Email:
+    %td
+      =h @current_user.email
+
+.actions
+  = link_to "Edit", :action => 'edit'
+  -#= link_to "Change password", edit_password_path
+

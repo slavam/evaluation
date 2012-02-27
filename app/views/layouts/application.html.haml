@@ -23,22 +23,35 @@
       %br
       #tabs
         %ul
-          - if not true
+          - if not current_user
             = render :partial => 'layouts/menuItem', :collection => [ |
-              ['Login', new_user_session_url]                        |
+              ['Отделения (ФД)',  branch_of_banks_path], | 
+              ['Отделения (ОДБ)',  divisions_path], |
+              ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'] | 
             ] |
-            -
+            %div{'style' => "float: right;"}
+              = render :partial => 'layouts/menuItem', :collection => [               |
+              ['Логин', new_user_session_url]                        |
+              ] |
           - else
             %div{'style' => "float: left;"}
               = render :partial => 'layouts/menuItem', :collection => [ |
                 ['Отделения (ФД)',  branch_of_banks_path], | 
                 ['Отделения (ОДБ)',  divisions_path], |
                 ['Подразделения',  subdivisions_path], |
+                ['Показатели', factor_descriptions_path], |
                 ['Шаблоны',  directions_path], |
                 ['Ручной ввод',  :controller => 'values', :action => 'get_values_params'], |
                 ['Расчет KPI',  :controller => 'performances', :action => 'get_calc_params'], |
                 ['Просмотр KPI',  :controller => 'performances', :action => 'get_report_params'] | 
               ] |
+            %div{'style' => "float: right;"}
+              = render :partial => 'layouts/menuItem', :collection => [               |
+                ['Ваш профиль', profile_path],                               |
+                ['Выход', user_session_path, { :method => :delete }]         |
+              ] |
+            -
+              
             - 
             -##div{'style' => "float: left;margin-left: 30px"}
               -#= render :partial => 'layouts/menuItem', :collection => [ |
@@ -61,6 +74,8 @@
                 -#['Бизнесы', businesses_path], |
                 -#['Шаблоны',  directions_path] |
                 -#['Результаты',  performances_path] |
+
+                ['Admin settings', settings_path, nil, !current_user.admin?], |
                 
               -#] |
             -#-

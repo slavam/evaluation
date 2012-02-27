@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/subversion/!svn/ver/756/tuba/app/views/profiles
+END
+show.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/subversion/!svn/ver/756/tuba/app/views/profiles/show.html.haml
+END
+edit.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/subversion/!svn/ver/692/tuba/app/views/profiles/edit.html.haml
+END

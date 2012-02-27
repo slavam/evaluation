@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/subversion/!svn/ver/769/tuba/app/views/users
+END
+show.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/subversion/!svn/ver/769/tuba/app/views/users/show.html.haml
+END
+_form.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/subversion/!svn/ver/761/tuba/app/views/users/_form.html.haml
+END
+edit.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/subversion/!svn/ver/727/tuba/app/views/users/edit.html.haml
+END
+index.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/subversion/!svn/ver/761/tuba/app/views/users/index.html.haml
+END
+new.html.haml
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/subversion/!svn/ver/727/tuba/app/views/users/new.html.haml
+END

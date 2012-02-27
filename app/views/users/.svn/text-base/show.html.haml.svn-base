@@ -1,0 +1,63 @@
+%h1 
+  = @user.login
+  details
+
+.content
+  %table.card
+    %tr
+      %th
+        Login
+      %td
+        =h @user.login
+    %tr
+      %th
+        Email
+      %td
+        =h @user.email
+    %tr
+      %th
+        Active
+      %td
+        = @user.active
+  
+  .actions
+    = link_to "Edit", edit_user_path(@user)
+
+%h1= "User audit"
+.content
+  %table.card
+    %tr
+      %th
+        Login count
+      %td
+        = @user.login_count
+    %tr
+      %th
+        Failed login count
+      %td
+        = @user.failed_login_count
+    %tr
+      %th
+        Last request at
+      %td
+        = @user.last_request_at
+    %tr
+      %th
+        Current login at
+      %td
+        = @user.current_login_at
+    %tr
+      %th
+        Last login at
+      %td
+        = @user.last_login_at
+    %tr
+      %th
+        Current login IP
+      %td
+        = @user.current_login_ip
+    %tr
+      %th
+        Last login IP
+      %td
+        = @user.last_login_ip

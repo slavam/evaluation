@@ -1,0 +1,20 @@
+%h1= submit+" пользователя"
+.content
+  = form_for @user do |form|
+    %table
+      %tr
+        %th= form.label "Логин"
+        %td= form.text_field :login
+      %tr
+        %th= form.label "Пароль"
+        %td= form.password_field :password
+      %tr
+        %th= form.label "Повторный пароль"
+        %td= form.password_field :password_confirmation
+      %tr
+        %th= form.label "e-mail"
+        %td= form.text_field :email
+      %tr
+        %th= "Роль"
+        %td= form.select(:role_id, Role.all.collect {|r| [r.name, r.id]} )
+    = submit_tag submit 

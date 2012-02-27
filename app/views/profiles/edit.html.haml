@@ -1,0 +1,11 @@
+%h1 Edit profile
+
+= form_for @current_user, :url => profile_path do |f|
+  %table
+    %tr
+      %th
+        = f.label :email
+      %td
+        = f.text_field :email
+  %br
+  = submit_tag 'Update'
