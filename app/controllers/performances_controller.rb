@@ -974,7 +974,9 @@ class PerformancesController < ApplicationController
                         where parent_id = 1 and sr_busines_id =
                           (select id from "+FIN_OWNER+".sr_busines where code = '"+business+"'))                    
                     and dfp.division_id = d.id 
-                    and d.code in ("+code_by_id.values.join(',')+") group by d.code"    
+                    and d.open_date is not null
+                    group by d.code"
+#                    and d.code in ("+code_by_id.values.join(',')+") group by d.code"    
               credits = PlanDictionary.find_by_sql(query)
               facts.clear
               credits.each {|credit|

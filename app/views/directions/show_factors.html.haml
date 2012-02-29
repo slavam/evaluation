@@ -9,9 +9,6 @@
       %th Название
     - for f in @factors
       %tr
-        -# if @block.categorization
-          -#%td= link_to f.factor_description.short_name, :action => :show_articles, :id => f, :category => {:category_id => f.div_category_id}
-        -# else  
         %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
 %br	
 .actions

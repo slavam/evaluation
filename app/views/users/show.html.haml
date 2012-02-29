@@ -16,9 +16,9 @@
         =h @user.email
     %tr
       %th
-        Active
+        Role
       %td
-        = @user.active
+        = @user.role.name
   
   .actions
     = link_to "Edit", edit_user_path(@user)
