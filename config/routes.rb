@@ -8,6 +8,7 @@ Evaluation::Application.routes.draw do
   end
 
   resources :users
+  resources :audits
   resource :profile
   resources :blocks do
     collection do

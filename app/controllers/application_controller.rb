@@ -1,6 +1,11 @@
 class ApplicationController < ActionController::Base
+  helper :all
   protect_from_forgery
   helper_method :current_user_session, :current_user
+
+#  audit Factor, Block
+
+  around_filter :set_audit_user
 
   protected
 
@@ -10,21 +15,11 @@ class ApplicationController < ActionController::Base
   end
 
   private
-#  class ::String
-#    require 'iconv'
-#    
-#        #
-#        # Return an utf-8 representation of this string.
-#        #
-#    def to_utf
-#      begin
-#        Iconv.new("utf-8", "cp1251").iconv(self)
-#        rescue Iconv::IllegalSequence => e
-#          STDERR << "!! Failed converting from UTF-8 -> cp1251 (#{self}). Already the right charset?"
-#        self
-#      end
-#    end
-#  end
+  def set_audit_user
+    Audit.as_user current_user do
+      yield
+    end
+  end
 
   def store_location
     session[:return_to] = request.request_uri

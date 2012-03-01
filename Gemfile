@@ -20,6 +20,7 @@ gem 'activerecord-oracle_enhanced-adapter'
 gem 'ruby-plsql'
 gem 'spreadsheet'
 gem 'authlogic'
+gem "acts_as_audited", "~> 2.0.0"
 #gem "rake", "0.8.7"
 
 

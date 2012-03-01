@@ -4,6 +4,14 @@ class User < ActiveRecord::Base
     c.ignore_blank_passwords = false
   end
 
+#  acts_as_audited :except => [ :persistence_token,
+#    :perishable_token, :login_count, :failed_login_count,
+#    :last_request_at, :current_login_at, :last_login_at, 
+#    :current_login_ip, :last_login_ip ]
+
+#  acts_as_audited :protect => false
+  acts_as_audited :only => [:login]
+
   def admin?
     role_id == 1
   end

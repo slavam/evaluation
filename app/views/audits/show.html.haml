@@ -1,0 +1,30 @@
+%h1 Audit details
+.content
+  %table.card
+    %tr
+      %th Model:
+      %td= @audit.auditable_type
+    %tr
+      %th Id:
+      %td= @audit.auditable_id
+    %tr
+      %th Action:
+      %td= @audit.action
+    %tr
+      %th User:
+      %td= @audit.user.login
+    %tr
+      %th Time:
+      %td= @audit.created_at
+
+  %h3 Changes:
+  %table.card
+    %tr
+      %th Field name
+      - @value_field_names.each do |name|
+        %th= name
+    - @audit.changes.each_pair do |attribute_name, attribute_values|
+      %tr
+        %td= attribute_name
+        - Array(attribute_values).each do |value|
+          %td= value
