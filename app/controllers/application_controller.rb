@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
 
 #  audit Factor, Block
 
-  around_filter :set_audit_user
+#  around_filter :set_audit_user
 
   protected
 

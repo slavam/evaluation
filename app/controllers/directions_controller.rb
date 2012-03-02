@@ -1,6 +1,6 @@
 # coding: utf-8
 class DirectionsController < ApplicationController
-  before_filter :require_user  
+  before_filter :require_admin  
   before_filter :find_direction, :only => [:destroy, :edit, :update, :show_eigen_blocks]
   before_filter :find_block, :only => [:show_eigen_factors, :category_select, :show_factors]
   before_filter :find_factor, :only => :show_articles
@@ -14,6 +14,9 @@ class DirectionsController < ApplicationController
   def show_eigen_blocks
   end
 
+  def show_articles
+  end
+  
   def show_factors
     @factors = []
     @block.factors.each {|f| 
@@ -33,9 +36,6 @@ class DirectionsController < ApplicationController
     end
   end
 
-  def show_articles
-  end
-  
   def new
     @direction = Direction.new
   end
@@ -46,6 +46,7 @@ class DirectionsController < ApplicationController
     if not @direction.save
       render :new
     else
+      notice_created
       redirect_to directions_path
     end
   end

@@ -51,6 +51,9 @@ GEM
     hike (1.2.1)
     i18n (0.6.0)
     journey (1.0.1)
+    jquery-rails (2.0.1)
+      railties (>= 3.2.0, < 5.0)
+      thor (~> 0.14)
     json (1.6.5)
     mail (2.4.1)
       i18n (>= 0.4.0)
@@ -128,6 +131,7 @@ DEPENDENCIES
   authlogic
   capistrano
   haml (~> 3.1.2)
+  jquery-rails
   pg
   prawn
   rails (= 3.2.1)

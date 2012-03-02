@@ -1,6 +1,6 @@
 class UsersController < ApplicationController
   before_filter :require_admin
-  before_filter :find_user, :only => [ :show, :edit, :update, :destroy ]
+  before_filter :find_user, :only => [ :show, :edit, :update, :destroy_user ]
 
   def index
     @users = User.all(:order => :login)
@@ -38,8 +38,9 @@ class UsersController < ApplicationController
     end
   end
 
-  def destroy
+  def destroy_user
     @user.destroy
+    notice_destroyed
     redirect_to :users
   end
 

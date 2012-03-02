@@ -7,7 +7,11 @@ Evaluation::Application.routes.draw do
     end
   end
 
-  resources :users
+  resources :users do
+    collection do
+      get :destroy_user
+    end
+  end
   resources :audits
   resource :profile
   resources :blocks do
@@ -82,12 +86,12 @@ Evaluation::Application.routes.draw do
   end
 #  match '/destroy' => "values#destroy", :as => "destroy"
   
-  resources :articles do
-    collection do
-      get :new_article
-      post :save_article
-    end
-  end
+#  resources :articles do
+#    collection do
+#      get :new_article
+#      post :save_article
+#    end
+#  end
 
   resources :params do
     collection do
