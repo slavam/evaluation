@@ -45,6 +45,7 @@ GEM
       net-sftp (>= 2.0.0)
       net-ssh (>= 2.0.14)
       net-ssh-gateway (>= 1.1.0)
+    dynamic_form (1.1.4)
     erubis (2.7.0)
     haml (3.1.4)
     highline (1.6.11)
@@ -130,6 +131,7 @@ DEPENDENCIES
   acts_as_audited (~> 2.0.0)
   authlogic
   capistrano
+  dynamic_form
   haml (~> 3.1.2)
   jquery-rails
   pg

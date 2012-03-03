@@ -11,8 +11,8 @@ class UserSessionsController < ApplicationController
     if @user_session.save
       notice_created
       redirect_to :controller => 'performances', :action => 'get_report_params'
-#      redirect_back_or_default profile_path
     else
+      flash_error 'auth_error'
       render :action => :new
     end
   end

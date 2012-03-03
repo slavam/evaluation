@@ -7,6 +7,7 @@ ru:
     require_admin: Only admin user can see this page
     require_user: You must be logged in to access this page
     require_no_user: Эта функция доступна только для администратора
+    auth_error: Проблемы с идентификацией
 
     created: "{{name}} объект был создан"
     updated: "Объект был изменен"

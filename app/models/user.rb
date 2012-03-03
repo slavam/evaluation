@@ -1,5 +1,6 @@
 class User < ActiveRecord::Base
   belongs_to :role
+
   acts_as_authentic do |c|
     c.ignore_blank_passwords = false
   end

@@ -17,7 +17,6 @@ class UsersController < ApplicationController
     if not @user.save
       render :new
     else
-#      @user.deliver_new_user_instructions!
       notice_created
       redirect_to :users
     end

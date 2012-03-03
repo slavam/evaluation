@@ -78,6 +78,7 @@
                 ] |
                 %div{'style' => "float: right;"}
                   = render :partial => 'layouts/menuItem', :collection => [               |
+                    ['Ваш профиль', profile_path],                               |
                     ['Выход', user_session_path, { :method => :delete }]         |
                   ] |
             - 

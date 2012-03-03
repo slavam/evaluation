@@ -1,8 +1,6 @@
-%h1  
-  Пользователь 
-  =h @current_user.login
-
-%table.card
+-@title = "Профиль"
+%h2 Пользователь #{@current_user.login}
+%table
   %tr
     %th
       Login:
@@ -19,7 +17,4 @@
     %td
       = @current_user.role.name
 
-.actions
-  -#= link_to "Edit", :action => 'edit'
-  -#= link_to "Change password", edit_password_path
 

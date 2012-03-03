@@ -23,6 +23,7 @@ gem 'authlogic'
 gem "acts_as_audited", "~> 2.0.0"
 #gem "rake", "0.8.7"
 gem 'jquery-rails'
+gem 'dynamic_form'
 
 
 
