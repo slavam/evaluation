@@ -4,4 +4,5 @@ class Value < ActiveRecord::Base
   belongs_to :branch_of_bank, :class_name => 'BranchOfBank', :foreign_key => 'division_id'
   belongs_to :action, :class_name => 'Action', :foreign_key => 'type_id'
   belongs_to :worker, :class_name => 'Worker', :foreign_key => 'worker_id'
+  acts_as_audited :only => [:save_data, :save_value, :delete_value]
 end

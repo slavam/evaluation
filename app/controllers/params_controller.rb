@@ -21,7 +21,7 @@ class ParamsController < ApplicationController
     end
   end
   
-  def destroy
+  def destroy_param
     @parameter = Param.find params[:id]
     factor_id = @parameter.factor_id
     @parameter.destroy

@@ -17,9 +17,6 @@ class FactorsController < ApplicationController
   end
   
   def new_factor
-#    if @block.categorization
-#      @category = CategoryOfDivision.find params[:category][:category_id]
-#    end
     @factor = Factor.new
   end
  
@@ -29,16 +26,18 @@ class FactorsController < ApplicationController
     @factor.factor_description_id = params[:new_factor][:factor_description_id]
     @factor.plan_descriptor = params[:new_factor][:plan_descriptor]
     @factor.fact_descriptor = params[:new_factor][:fact_descriptor]
-#    if @block.categorization
-#      @factor.div_category_id = params[:category_id]        
-#    end
     @factor.save
+    f_w = FactorWeight.new
+    f_w.factor_id = @factor.id
+    f_w.start_date = Time.now
+    f_w.weight = 0
+    f_w.save    
     redirect_to :controller => 'directions', :action => 'show_factors', :id => params[:block_id]
   end
   
   def add_weights
-    
   end
+
   def save_weights
     total_weight = 0
     if params[:w]
@@ -90,16 +89,13 @@ class FactorsController < ApplicationController
   end
   
   def edit_weights
-    if @block.categorization
-      @category = CategoryOfDivision.find params[:category][:category_id]
-    end
-    
+    @category = CategoryOfDivision.find params[:category][:category_id] if @block.categorization
   end
   
   def save_updated_weights
-    total_weight = 0
+    total_weight = 0.0
     params[:w].keys.each  do |id|
-      total_weight += params[:w][id.to_s][:weight].to_f
+      total_weight += (params[:w][id.to_s][:weight].to_f*100).round / 100
     end
     if total_weight>1
       flash_error :weight_is_wrong

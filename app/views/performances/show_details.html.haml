@@ -1,0 +1,34 @@
+# coding: utf-8
+-@title = "Анализ KPI"
+%h2 Анализ KPI "#{@performance.factor.factor_description.short_name}"
+- case @performance.direction.level_id
+  - when 4 
+    %h3 Сотрудник: #{@performance.fullname}
+    %h3 Отделение: #{@performance.division.name}
+  - when 1
+    %h3 По всему банку
+  - else
+    %h3 Отделение: #{@performance.division.name}
+%h3 Шаблон: #{@performance.direction.name}
+%h3 Период: #{@performance.period.description}
+- if @parameter
+  %h3 #{@parameter}
+.content
+  %table.data
+    %tr
+      %th Отделение
+      %th Сотрудник
+      %th Объект
+      %th Остатки
+      %th Просрочка
+    - for o in @objects
+      %tr
+        %td= o[:division_name]
+        %td= o[:user_id]
+        %td= o[:object_id]
+        %td= o[:amount_rest]
+        %td= o[:amount_exp]
+    %tr
+      %td{:colspan => 3}
+      %td= @total    
+    

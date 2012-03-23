@@ -6,7 +6,8 @@ plan_fact:
 
 odb:
   adapter: oracle_enhanced
-  database: ora0-i00:1521/SRBANK
+  database: ora0-i00.vbr.ua:1521/SRBANK
+#  database: ora0-i00:1521/SRBANK
   username: kpi
   password: MVM55010101
 #  password: R4EW9OLK
@@ -24,6 +25,15 @@ personnel:
 
 development:
 #production:
+  adapter: postgresql
+  database: evaluation_development
+  username: postgres
+  password: postgres
+  host: localhost
+  port: 5433
+  encoding: UTF8
+
+production:
   adapter: postgresql
   database: evaluation_development
   username: postgres

@@ -57,6 +57,50 @@ class PerformancesController < ApplicationController
     end  
   end
   
+  def show_details
+    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
+    @performance = Performance.find params[:performance_id]  
+    if (not @performance.factor.fact_descriptor.nil?) and (@performance.factor.fact_descriptor > '')
+      period = Period.find @performance.period_id
+      @parameter = ''
+      if @performance.factor.fact_descriptor == 'get_fact_from_rest' or @performance.factor.fact_descriptor == 'get_fact_from_rest_by_program'
+        curr_param = Param.where('factor_id=? and action_id=2 and param_description_id=6', @performance.factor_id).last
+        program_names = curr_param.value
+        @parameter = curr_param.param_description.description+': '+program_names
+        query = "
+          declare
+            c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+            m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+          begin "+program_names_to_array(program_names)+
+            FACT_OWNER+".vbr_kpi.tst_rest_by_ct_type(TO_DATE('"+ 
+            period.end_date.to_s+"','yyyy-mm-dd'), 
+            'CREDIT_DOCUMENT', 'O', m_macro_table, :c_cursor);
+          end;"
+#        ::Rails.logger.info query+"++++++++++++++++++++++++++++"
+        cursor = get_cursor odb_connection, query
+#        # r[0] => division_id
+#        # r[1] => user_id
+#        # r[2] => object_id
+#        # r[3] => ammount_rest
+#        # r[4] => ammount_exp
+#        facts.clear
+        @objects = []
+        @total = 0 
+        if (@performance.direction.level_id == 3)
+          odb_division_id = get_odb_division_id @performance.division_id
+          division_name = BranchOfBank.find(@performance.division_id).name 
+        end
+        while r = cursor.fetch()
+          if r[0] == odb_division_id 
+            @objects << {:division_name => division_name, :user_id => r[1], :object_id => r[2], :amount_rest => r[3], :amount_exp => r[4]}
+            @total += (r[3]+r[4])
+          end
+        end
+      end        
+    end
+    odb_connection.logoff
+  end
+  
   def get_interval
     @division_id, @direction_id, @factor_id, @worker_id, @period_id = 
       params[:division_id], params[:direction_id], params[:factor_id], params[:worker_id], params[:period_id]
@@ -110,7 +154,8 @@ class PerformancesController < ApplicationController
 #        return
 #      end
 #    }
-    odb_connection = OCI8.new("kpi", "MVM55010101", "srbank")
+#    odb_connection = OCI8.new("kpi", "MVM55010101", "srbank")
+    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
     case @direction.level_id
       when 4 # all workers MSB
         @workers = Worker.find_by_sql(" select e.id_emp id, e.tabn, e.code_division, 
@@ -317,7 +362,11 @@ class PerformancesController < ApplicationController
     sheet1.row(6+j+1).push 'ИТОГО', '', '', '', '', '', '', '', 
     number_helper.number_with_precision(kpi_result+kpi_total, :precision => 3, :separator => '.')
     book.write(tempfile.path)
-    send_file tempfile.path, :filename => filename        
+    File.chmod(0744, tempfile.path)  
+    send_file tempfile.path, :type => "application/vnd.ms-excel", :filename => filename
+    tempfile.close
+    tempfile.unlink
+#    File.delete(tempfile.path)
   end
   
   private
@@ -374,14 +423,18 @@ class PerformancesController < ApplicationController
   end
   
   def get_plan_from_values_by_worker period_id, worker_id, factor_id
-    p = Value.select('sum(factor_value) as plan').
-      where("period_id=? and worker_id=? and factor_id=? and type_id=1", period_id, worker_id, factor_id).first  
-    return p.plan
+    return Value.select('factor_value as plan').
+      where("period_id=? and worker_id=? and factor_id=? and type_id=1", period_id, worker_id, factor_id).
+      order(:create_date).last.plan  
+#    return p.plan
   end
   
   def collect_plan_from_values_by_workers period_id, division_id, collect_factor_id
-    p = Value.select('sum(factor_value) as plan').where("period_id=? and division_id=? and factor_id=? and type_id=1", period_id, division_id, collect_factor_id).first  
-    return p.plan
+    return Value.select('sum(factor_value) as plan').
+      where("period_id=? and division_id=? and factor_id=? and type_id=1 and create_date in
+      (select max(create_date) from values where period_id=? and division_id=? and factor_id =? and type_id=1 group by division_id)", 
+      period_id, division_id, collect_factor_id, period_id, division_id, collect_factor_id).plan  
+#    return p.plan
   end
  
   def make_fields_list start_date, end_date
@@ -395,9 +448,23 @@ class PerformancesController < ApplicationController
   end
      
   def get_fact_from_values period_id, division_id, factor_id
-    f = Value.select('sum(factor_value) as fact').
-      where("period_id=? and division_id=? and factor_id=? and type_id=2", period_id, division_id, factor_id).first  
-    return f.fact
+    vf = Value.select('factor_value as fact').
+      where("period_id=? and division_id=? and factor_id=? and type_id=2", period_id, division_id, factor_id).order(:create_date).last
+    if not vf.nil?
+      return vf.fact
+    else
+      f = Factor.find factor_id
+      b_d_id = f.block.block_description_id
+      if (b_d_id == 2) or (b_d_id == 3)
+        return 100
+      else
+        if f.factor_description_id == 5 # "% проблемности"
+          return -1
+        else
+          return 0
+        end  
+      end
+    end  
   end
 
 =begin            
@@ -516,7 +583,7 @@ class PerformancesController < ApplicationController
   end
    
   def get_odb_division_id fd_division_id
-    return Division.find_by_code(BranchOfBank.find(fd_division_id).code).id
+    return Division.find_by_code(BranchOfBank.find(fd_division_id).code.to_i).id
   end
   
   def find_direction
@@ -537,9 +604,13 @@ class PerformancesController < ApplicationController
 #    @is_data_ready = false    
 #  end
   
-  def get_code_s_by_odb_division_id odb_division_id
+  def get_code_s_by_odb_division_id odb_division_id, direction_id
     if odb_division_id == 1
-      return '000'
+      if direction_id == 32 # Руководители отделений ПАТ "ВБР" (ИБ)
+        return '002'
+      else
+        return '000'
+      end
     else
       c = Division.find(odb_division_id).code.to_i
       return c > 9 ? '0'+c.to_s : '00'+c.to_s 
@@ -582,7 +653,9 @@ class PerformancesController < ApplicationController
           if (not f.plan_descriptor.nil?) and f.plan_descriptor > ''
             case f.plan_descriptor
               when 'get_plan_from_values'
-                Value.where("period_id=? and factor_id=? and type_id=1", period.id, f.id).order(:division_id).each{|v|
+                Value.where("period_id=? and factor_id=? and type_id=1 and create_date in
+                  (select max(create_date) from values where period_id=? and factor_id =? and type_id=1 group by division_id)", 
+                  period.id, f.id, period.id, f.id).order(:division_id).each{|v|
                     plans[code_by_id[v.division_id]] = v.factor_value.to_f
                   }  
               when 'get_plan_from_values_by_worker'
@@ -751,16 +824,23 @@ class PerformancesController < ApplicationController
                     end
                   }
                 when 3
-                  values = Value.where("period_id=? and factor_id=? and type_id=2", period.id, f.id).order(:division_id)
                   facts.clear
                   if (f.block.block_description_id == 2) or (f.block.block_description_id == 3)   # задачи, стандарт
                     code_by_id.each_value{|code|
                       facts[code] = 100
                     }
+                  else
+                    if f.factor_description_id == 5 # "% проблемности"
+                      code_by_id.each_value{|code|
+                        facts[code] = -1
+                      }
+                    end 
+                    Value.where("period_id=? and factor_id=? and type_id=2 and create_date in
+                      (select max(create_date) from values where period_id=? and factor_id =? and type_id=2 group by division_id)", 
+                      period.id, f.id, period.id, f.id).order(:division_id).each {|v|
+                        facts[code_by_id[v.division_id]] = v.factor_value.to_f
+                      }
                   end
-                  values.each {|v|
-                    facts[code_by_id[v.division_id]] = v.factor_value.to_f
-                  }
                 when 4
                   values = Value.select('worker_id, sum(factor_value) as fact').
                     where("period_id=? and factor_id=? and type_id=2",period.id, f.id).group(:worker_id).order(:worker_id)
@@ -778,20 +858,15 @@ class PerformancesController < ApplicationController
             if f.fact_descriptor == 'get_fact_problem_percent_by_worker'  
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
-              declare
-                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-              begin "+program_names_to_array(program_names)+
-                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                period.end_date.to_s+"','yyyy-mm-dd'), 
-                'CREDIT_DOCUMENT', 'T', m_macro_table, :c_cursor);
-              end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
-
+                declare
+                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                begin "+program_names_to_array(program_names)+
+                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                  period.end_date.to_s+"','yyyy-mm-dd'), 
+                  'CREDIT_DOCUMENT', 'T', m_macro_table, :c_cursor);
+                end;"
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => user_id
               # r[2] => ammount_rest
@@ -812,20 +887,15 @@ class PerformancesController < ApplicationController
             if f.fact_descriptor == 'get_fact_rest_by_worker'  
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
-              declare
-                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-              begin "+program_names_to_array(program_names)+
-                FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+ 
-                period.end_date.to_s+"','yyyy-mm-dd'), 
-                'T', m_macro_table, :c_cursor);
-              end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
-
+                declare
+                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                begin "+program_names_to_array(program_names)+
+                  FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+ 
+                  period.end_date.to_s+"','yyyy-mm-dd'), 
+                  'T', m_macro_table, :c_cursor);
+                end;"
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => user_id
               # r[2] => cnt
@@ -839,19 +909,15 @@ class PerformancesController < ApplicationController
                 end  
               end
               query = "
-              declare
-                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-              begin "+program_names_to_array(program_names)+
-                FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+ 
-                period.start_date.yesterday.to_s+"','yyyy-mm-dd'), 
-                'T', m_macro_table, :c_cursor);
-              end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                declare
+                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                begin "+program_names_to_array(program_names)+
+                  FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+ 
+                  period.start_date.yesterday.to_s+"','yyyy-mm-dd'), 
+                  'T', m_macro_table, :c_cursor);
+                end;"
+              cursor = get_cursor odb_connect, query
               while r = cursor.fetch()
                 e = Employee.find_by_sr_user_id(r[1])
                 if not e.nil?
@@ -863,21 +929,15 @@ class PerformancesController < ApplicationController
             if f.fact_descriptor == 'get_fact_problem_pers'  
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
-              declare
-                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-              begin "+program_names_to_array(program_names)+
-                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                period.end_date.to_s+"','yyyy-mm-dd'), 
-                'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-              end;"
-              
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
-
+                declare
+                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                begin "+program_names_to_array(program_names)+
+                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                  period.end_date.to_s+"','yyyy-mm-dd'), 
+                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+                end;"
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => ammount_rest
               # r[2] => ammount_exp
@@ -900,8 +960,7 @@ class PerformancesController < ApplicationController
                     where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                 group by div.code"
                 
-              ovr = PlanDictionary.find_by_sql(query)
-              ovr.each {|o| facts[o.code] = 0 if o.fact.to_f > 0.0}
+              PlanDictionary.find_by_sql(query).each {|o| facts[o.code] = 0 if o.fact.to_f > 0.0}
 
               exp = 0
               rest = 0
@@ -910,8 +969,8 @@ class PerformancesController < ApplicationController
               while r = cursor.fetch()
                 exp = exp+r[2]
                 rest = rest+r[1]+r[2]
-                code = get_code_s_by_odb_division_id(r[0])
-                if (code == '000') and (f.id == 235) # problem with codes 000 and 002
+                code = get_code_s_by_odb_division_id r[0], direction.id
+                if (code == '000') and (f.id == 235 or f.id == 219) # problem with codes 000 and 002
                   code = '002'
                 end
                 if (direction.level_id == 2) and (r[0].to_i != 1) and (r[0].to_i != 322) # 000 & 019
@@ -939,26 +998,24 @@ class PerformancesController < ApplicationController
             if (f.fact_descriptor == 'get_fact_from_rest_by_program') or (f.fact_descriptor == 'get_fact_from_rest')
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
-              declare
-                c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-              begin "+program_names_to_array(program_names)+
-                FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                period.end_date.to_s+"','yyyy-mm-dd'), 
-                'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-              end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
-
+                declare
+                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                begin "+program_names_to_array(program_names)+
+                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                  period.end_date.to_s+"','yyyy-mm-dd'), 
+                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+                end;"
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => ammount_rest
               # r[2] => ammount_exp
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id r[0]
+                code = get_code_s_by_odb_division_id r[0], direction.id
+                if (code == '000') and (f.id == 234) and (program_names == 'KKG') # Гарантии
+                  code = '002'
+                end
                 facts[code] = r[1]+r[2]
               end
             end
@@ -976,35 +1033,29 @@ class PerformancesController < ApplicationController
                     and dfp.division_id = d.id 
                     and d.open_date is not null
                     group by d.code"
-#                    and d.code in ("+code_by_id.values.join(',')+") group by d.code"    
-              credits = PlanDictionary.find_by_sql(query)
               facts.clear
-              credits.each {|credit|
+              PlanDictionary.find_by_sql(query).each {|credit|
                 facts[credit.code] = credit.fact
               }
               if business == 'K' # subtract factoring
                 query = "
-                declare
-                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := sr_bank.T_STR_ROW('202-001-01');
-                  "+FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                  period.end_date.to_s+"','yyyy-mm-dd'), 
-                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-                end;"
-                plsql = odb_connect.parse(query)
-                plsql.bind_param(':c_cursor', OCI8::Cursor) 
-                plsql.exec
-                cursor = plsql[':c_cursor']
-                plsql.close
+                  declare
+                    c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+                    m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+                  begin 
+                    m_macro_table.extend;
+                    m_macro_table(1) := sr_bank.T_STR_ROW('202-001-01');
+                    "+FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+                    period.end_date.to_s+"','yyyy-mm-dd'), 
+                    'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+                  end;"
+                cursor = get_cursor odb_connect, query
   
                 # r[0] => division_id
                 # r[1] => ammount_rest
                 # r[2] => ammount_exp
                 while r = cursor.fetch()
-                  code = get_code_s_by_odb_division_id(r[0])
+                  code = get_code_s_by_odb_division_id r[0], direction.id
                   facts[code] = (facts[code] ? facts[code] : 0) - (r[1]+r[2])
                 end
               end
@@ -1019,17 +1070,13 @@ class PerformancesController < ApplicationController
                   "','yyyy-mm-dd'), TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), :c_cursor); 
                 end; "
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = r[1]
               end
             end
@@ -1043,17 +1090,13 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_depobox(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor); 
                 end; "     
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = r[1]
               end
             end
@@ -1088,12 +1131,6 @@ class PerformancesController < ApplicationController
                 PlanDictionary.find_by_sql(query).each {|fr|
                   facts[fr.code] = fr.fact
                 }
-#                if f.id == 271
-#                  BranchOfBank.where("parent_id = 1 and id != 40 and open_date is not null").each {|d|
-#                    facts_by_regions[d.id] = facts[d.code] 
-#                  }
-#                end
-                
             end
             if f.fact_descriptor == 'get_fact_municipal_by_contract'
               query = "
@@ -1103,12 +1140,8 @@ class PerformancesController < ApplicationController
                   "+FACT_OWNER+".vbr_kpi.get_count_municipal(TO_DATE('"+
                   period.start_date.beginning_of_year.to_s+"','yyyy-mm-dd'),
                   TO_DATE('"+ period.end_date.to_s+"','yyyy-mm-dd'), :c_cursor);
-                end;"            
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end;"  
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => contract_id 
@@ -1118,7 +1151,7 @@ class PerformancesController < ApplicationController
               curr_code = ''
               municipal_count = 0
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if code != curr_code
                   if curr_code != ''
                     facts[curr_code] = municipal_count
@@ -1155,9 +1188,8 @@ class PerformancesController < ApplicationController
                     and dfp.periods_id in (select id from fin.periods p 
                       where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                   group by div.code order by div.code"
-              rests = PlanDictionary.find_by_sql(query)
               facts.clear
-              rests.each {|rest|
+              PlanDictionary.find_by_sql(query).each {|rest|
                 plans[rest.code] = rest.plan
                 facts[rest.code] = rest.fact
               }
@@ -1175,9 +1207,8 @@ class PerformancesController < ApplicationController
                     and dfp.credit_deposit_factor_id =tree.id
                     and dfp.periods_id=(select id from "+FIN_OWNER+".periods where date_from = TO_DATE('"+
                     period.end_date.to_s+"','yyyy-mm-dd')) group by div.code"
-              deposits = PlanDictionary.find_by_sql(query)
               facts.clear
-              deposits.each {|fact|
+              PlanDictionary.find_by_sql(query).each {|fact|
                 facts[fact.code] = fact.deposit
               }
             end
@@ -1191,17 +1222,13 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_card(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor); 
                 end; "  
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = r[1]
               end
             end
@@ -1216,18 +1243,17 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_pers_card_over(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => overs
               # r[2] => cards
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
+                if (code == '000') and (f.id == 279) # Количество установленных овердрафтов на счет 2605
+                  code = '002'
+                end
                 facts[code] = r[1]
               end
             end
@@ -1242,11 +1268,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_pers_card_over(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => overs
@@ -1257,7 +1279,7 @@ class PerformancesController < ApplicationController
               reg_act = {}
               reg_ov = {}
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -1298,11 +1320,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_pers_card_over_icz(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => type_id
@@ -1315,7 +1333,7 @@ class PerformancesController < ApplicationController
               reg_act = {}
               reg_ov = {}
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -1353,12 +1371,8 @@ class PerformancesController < ApplicationController
                   c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
                 begin "+
                   FACT_OWNER+".vbr_kpi.get_pers_card_ick(TO_DATE('"+period.end_date.to_s+"','yyyy-mm-dd'),:c_cursor);
-                end; "  
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end; " 
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => type_id
@@ -1370,7 +1384,7 @@ class PerformancesController < ApplicationController
               reg_card = {}
               reg_cred = {}
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -1410,18 +1424,14 @@ class PerformancesController < ApplicationController
                 begin "+program_names_to_array(terminal_type)+
                   FACT_OWNER+".vbr_kpi.get_count_term(TO_DATE('"+
                     period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor); 
-                end; "     
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end; "  
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = r[1]
               end
             end
@@ -1435,11 +1445,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
@@ -1449,7 +1455,7 @@ class PerformancesController < ApplicationController
               
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = r[1]
               end
             end
@@ -1473,12 +1479,8 @@ class PerformancesController < ApplicationController
                   and cdv.periods_id in (select id from fin.periods p 
                       where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                 group by d.code order by d.code"
-              accounts = PlanDictionary.find_by_sql(query)
               facts.clear
-              accounts.each {|a|
-                #facts[a.code.to_i] = a.acc
-                facts[a.code] = a.acc
-              }   
+              PlanDictionary.find_by_sql(query).each {|a| facts[a.code] = a.acc}   
               if direction.level_id == 2
                 facts.each {|code, value|
                   facts_by_regions[parents[code]] = (facts_by_regions[parents[code]] ? facts_by_regions[parents[code]] : 0) + value
@@ -1506,14 +1508,12 @@ class PerformancesController < ApplicationController
                   and cdv.periods_id in (select id from fin.periods p 
                     where p.type_period='M' and p.date_from = TO_DATE('"+period.start_date.to_s+"','yyyy-mm-dd'))
                 group by d.code order by d.code"
-              accounts = PlanDictionary.find_by_sql(query)
-              facts.clear
-              facts.clear
               acc = 0.0
               act = 0.0
               reg_acc = {}
               reg_act = {}
-              accounts.each {|a|
+              facts.clear
+              PlanDictionary.find_by_sql(query).each {|a|
                 facts[a.code] = 0
                 acc += a.acc
                 act += a.act
@@ -1550,23 +1550,19 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => amount
               # r[2] => amount_cb
               # r[3] => amount_gsm
               # r[4] => amount_active
-              facts.clear
               acc = 0
               act = 0
               reg_acc = {}
               reg_act = {}
+              facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -1605,24 +1601,20 @@ class PerformancesController < ApplicationController
                 begin "+program_names_to_array(program_names)+
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
-                end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end; "  
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => amount
               # r[2] => amount_cb
               # r[3] => amount_gsm
               # r[4] => amount_active
-              facts.clear
               acc = 0
               srv = 0
               reg_acc = {}
               reg_srv = {}
+              facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if facts[code].nil?
                   facts[code] = 0
                 end
@@ -1660,24 +1652,20 @@ class PerformancesController < ApplicationController
                 begin "+program_names_to_array(program_names)+
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
-                end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end; " 
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => amount
               # r[2] => amount_cb
               # r[3] => amount_gsm
               # r[4] => amount_active
-              facts.clear
               acc = 0
               cb = 0
               reg_acc = {}
               reg_srv = {}
+              facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = 0 if facts[code].nil?
                 acc = acc +(r[1] ? r[1]:0)
                 cb = cb +(r[2] ? r[2]:0)
@@ -1692,9 +1680,7 @@ class PerformancesController < ApplicationController
                   end
                 end
               end
-              if acc != 0
-                fact_of_bank = cb*100/acc
-              end
+              fact_of_bank = cb*100/acc if (acc != 0)
               if direction.level_id == 2
                 reg_acc.each {|id, value|
                   facts_by_regions[id] = 0
@@ -1704,7 +1690,6 @@ class PerformancesController < ApplicationController
                 }
               end
             end                       
-
             if f.fact_descriptor == 'get_fact_percent_gsm_service_using' 
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = " 
@@ -1714,24 +1699,20 @@ class PerformancesController < ApplicationController
                 begin "+program_names_to_array(program_names)+
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
-                end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+                end; " 
+              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => amount
               # r[2] => amount_cb
               # r[3] => amount_gsm
               # r[4] => amount_active
-              facts.clear
               acc = 0
               srv = 0
               reg_acc = {}
               reg_srv = {}
+              facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 facts[code] = 0 if facts[code].nil?
                 acc = acc +(r[1] ? r[1]:0)
                 srv = srv +(r[3] ? r[3]:0)
@@ -1746,9 +1727,7 @@ class PerformancesController < ApplicationController
                   end
                 end
               end
-              if acc != 0
-                fact_of_bank = srv*100/acc
-              end
+              fact_of_bank = srv*100/acc if (acc != 0)
               if direction.level_id == 2
                 reg_acc.each {|id, value|
                   facts_by_regions[id] = 0
@@ -1758,8 +1737,6 @@ class PerformancesController < ApplicationController
                 }
               end
             end                       
-            
-            
             if f.fact_descriptor == 'get_fact_enroll_salary'  
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = " 
@@ -1771,18 +1748,14 @@ class PerformancesController < ApplicationController
                   period.start_date.to_s+"','yyyy-mm-dd'), TO_DATE('"+ 
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end; "   
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
               # r[2] => count
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if (code == '000') and (f.id == 240) and (program_names == 'KZPK') # Сумма зачислений з/п по коммерческим зарплатным проектам
                   code = '002'
                 end
@@ -1800,11 +1773,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+
                   period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
                 end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => amount
@@ -1813,7 +1782,7 @@ class PerformancesController < ApplicationController
               # r[4] => amount_active
               facts.clear
               while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id(r[0])
+                code = get_code_s_by_odb_division_id r[0], direction.id
                 if (not r[1].nil?) and (r[1]!=0)
                   if r[4].nil?
                     facts[code] = 0
@@ -1835,11 +1804,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+
                   period.end_date.to_s+"','yyyy-mm-dd'), 'T', m_macro_table, :c_cursor);
                 end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
 
               # r[0] => division_id
               # r[1] => user_id
@@ -1860,11 +1825,7 @@ class PerformancesController < ApplicationController
                   FACT_OWNER+".vbr_kpi.get_count_credit(TO_DATE('"+
                   period.start_date.yesterday.to_s+"','yyyy-mm-dd'), 'T', m_macro_table, :c_cursor);
                 end;"
-              plsql = odb_connect.parse(query)
-              plsql.bind_param(':c_cursor', OCI8::Cursor) 
-              plsql.exec
-              cursor = plsql[':c_cursor']
-              plsql.close
+              cursor = get_cursor odb_connect, query
               while r = cursor.fetch()
                 e = Employee.find_by_sr_user_id(r[1])
                 if not e.nil?
@@ -1999,6 +1960,16 @@ class PerformancesController < ApplicationController
       end 
     end
   end
+  
+  def get_cursor odb_connect, query
+    plsql = odb_connect.parse(query)
+    plsql.bind_param(':c_cursor', OCI8::Cursor) 
+    plsql.exec
+    cursor = plsql[':c_cursor']
+    plsql.close
+    return cursor          
+  end
+
 
   def prepare_and_save_kpi_by_workers code_by_id, plans_by_worker, facts_by_worker, plans, facts, direction, block_id, factor_id, period_id, bw, fw
     factor = Factor.find(factor_id)

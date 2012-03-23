@@ -2,19 +2,11 @@
 %h2 Пользователь #{@current_user.login}
 %table
   %tr
-    %th
-      Login:
-    %td
-      =h @current_user.login
+    %th Login:
+    %td=h @current_user.login
   %tr
-    %th
-      Email:
-    %td
-      =h @current_user.email
+    %th Email:
+    %td=h @current_user.email
   %tr
-    %th
-      Role:
-    %td
-      = @current_user.role.name
-
-
+    %th Role:
+    %td= @current_user.role.name

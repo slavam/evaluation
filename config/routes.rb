@@ -50,7 +50,7 @@ Evaluation::Application.routes.draw do
         :report_print, :get_calc_params, :get_calc_division, 
         :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, 
         :show_kpi_by_divisions, :show_final_kpi, :show_final_kpi_for_division,
-        :show_final_kpi_for_direction, :kpi_as_xls, :get_interval
+        :show_final_kpi_for_direction, :kpi_as_xls, :get_interval, :show_details
     end
   end
 
@@ -95,7 +95,7 @@ Evaluation::Application.routes.draw do
 
   resources :params do
     collection do
-      get :show_params_by_factor, :new_param, :destroy
+      get :show_params_by_factor, :new_param, :destroy_param
       post :save_param
     end
   end

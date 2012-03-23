@@ -20,7 +20,7 @@ class DirectionsController < ApplicationController
   def show_factors
     @factors = []
     @block.factors.each {|f| 
-      @factors << f if (f.factor_weights.size > 0) and (f.factor_weights.last.weight > 0) 
+      @factors << f if (f.factor_weights.size > 0) and (f.factor_weights.last.weight >= 0) 
     }
   end
   

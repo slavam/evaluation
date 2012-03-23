@@ -26,7 +26,7 @@
           %td{:colspan => 3}
           %td= p.param_description.description
           %td= link_to p.value, :controller => 'params', :action => 'edit', :id =>p.id
-          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy', :id =>p.id
+          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy_param', :id =>p.id
     %tr  
       %th Факт-дескриптор:
       - if (@factor.fact_descriptor == 'get_fact_from_values')
@@ -38,7 +38,7 @@
           %td{:colspan => 3}
           %td= p.param_description.description
           %td= link_to p.value, :controller => 'params', :action => 'edit', :id =>p.id
-          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy', :id =>p.id
+          %td= link_to 'Удалить', :controller => 'params', :action => 'destroy_param', :id =>p.id
 %br	
 .actions
 %br  

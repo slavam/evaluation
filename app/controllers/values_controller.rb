@@ -10,14 +10,19 @@ class ValuesController < ApplicationController
     @v = Value.new
     @factor = Factor.find params[:data_params][:factor_id]    
     @period = Period.find params[:data_params][:period_id]
+    @divisions = []
     case @factor.block.direction.level_id
+      when 1
+        h_o = BranchOfBank.new
+        h_o.id = 999
+        h_o.code = '999'
+        h_o.name = "Весь банк"
+        @divisions << h_o
       when 3
         @divisions = BranchOfBank.where("open_date is not null").order(:code)
       when 2 # all regions 
         @divisions = BranchOfBank.where("open_date is not null and parent_id = 1 and id != 40").order(:code)
-        
     end  
-     
   end
   
   def save_data

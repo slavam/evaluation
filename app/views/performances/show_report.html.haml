@@ -79,12 +79,16 @@
           %td{style: 'text-align: right'}= number_to_currency(p.plan, :unit => "", :format => "%n %u")
         -   when '%' then  
           %td{style: 'text-align: right'}= number_with_precision(p.plan, :precision => 3, :separator => '.')
-        -    else          
+        -   else          
           %td{style: 'text-align: right'}= number_with_precision(p.plan, :precision => 0, :separator => '.')
         - 
         - case p.factor.factor_description.unit.name 
-        -   when 'грн.' then 
-          %td{style: 'text-align: right'}= number_to_currency(p.fact, :unit => "", :format => "%n %u")
+        -  when 'грн.' then 
+          - if current_user and current_user.admin? and (p.factor.fact_descriptor == 'get_fact_from_rest' or p.factor.fact_descriptor == 'get_fact_from_rest_by_program')
+            %td{style: 'text-align: right'}= link_to number_to_currency(p.fact, :unit => "", :format => "%n %u"), |
+              :action => 'show_details', :performance_id => p.id |
+          - else
+            %td{style: 'text-align: right'}= number_to_currency(p.fact, :unit => "", :format => "%n %u")
         -   when '%' then  
           %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 3, :separator => '.')
         -    else          
