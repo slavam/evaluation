@@ -6,6 +6,18 @@ class PerformancesController < ApplicationController
   PLAN_OWNER = 'RPK880508'
   FACT_OWNER = 'SR_BANK'
   FIN_OWNER  = 'FIN'
+  PACKAGE = 'vbr_kpi'
+  ODB_SP_NAME = {:get_count_term                 => 'tst_count_term',
+                 :get_fact_municipal_by_contract => 'tst_count_municipal',
+                 :get_fact_depobox               => 'tst_count_depobox',
+                 :get_fact_transfer              => 'tst_count_transfer',
+                 :get_fact_from_rest             => 'tst_rest_by_ct_type',
+                 :get_fact_from_rest_by_program  => 'tst_rest_by_ct_type', 
+                 :get_fact_problem_pers          => 'tst_rest_by_ct_type',
+                 :get_fact_percent_kb_service_using => 'tst_count_tariff',
+                 :get_fact_percent_gsm_service_using => 'tst_count_tariff',
+#                   :get_fact_count_card_over       => '',
+                 :get_fact_card_count            => 'tst_count_card'}
 #  @is_data_ready = true
   def index
     @performances = Performance.order(:period_id, :direction_id, :division_id, :block_id, :factor_id)
@@ -58,44 +70,175 @@ class PerformancesController < ApplicationController
   end
   
   def show_details
-    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
+#    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
+#    odb_connection = OCI8.new("kpi", "MVM55010101", "ora3-i00:1661/SRBANK")
+    odb_connection = OCI8.new("kpi", "MVM55010101", "srbank3")
     @performance = Performance.find params[:performance_id]  
     if (not @performance.factor.fact_descriptor.nil?) and (@performance.factor.fact_descriptor > '')
       period = Period.find @performance.period_id
       @parameter = ''
-      if @performance.factor.fact_descriptor == 'get_fact_from_rest' or @performance.factor.fact_descriptor == 'get_fact_from_rest_by_program'
-        curr_param = Param.where('factor_id=? and action_id=2 and param_description_id=6', @performance.factor_id).last
-        program_names = curr_param.value
-        @parameter = curr_param.param_description.description+': '+program_names
-        query = "
-          declare
-            c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-            m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-          begin "+program_names_to_array(program_names)+
-            FACT_OWNER+".vbr_kpi.tst_rest_by_ct_type(TO_DATE('"+ 
-            period.end_date.to_s+"','yyyy-mm-dd'), 
-            'CREDIT_DOCUMENT', 'O', m_macro_table, :c_cursor);
-          end;"
-#        ::Rails.logger.info query+"++++++++++++++++++++++++++++"
-        cursor = get_cursor odb_connection, query
-#        # r[0] => division_id
-#        # r[1] => user_id
-#        # r[2] => object_id
-#        # r[3] => ammount_rest
-#        # r[4] => ammount_exp
-#        facts.clear
-        @objects = []
-        @total = 0 
-        if (@performance.direction.level_id == 3)
+      @objects = []
+      @total_1 = 0
+      @total_2 = 0
+      @percent = 0
+      odb_division_ids = []
+      case @performance.direction.level_id
+        when 3
           odb_division_id = get_odb_division_id @performance.division_id
-          division_name = BranchOfBank.find(@performance.division_id).name 
-        end
-        while r = cursor.fetch()
-          if r[0] == odb_division_id 
-            @objects << {:division_name => division_name, :user_id => r[1], :object_id => r[2], :amount_rest => r[3], :amount_exp => r[4]}
-            @total += (r[3]+r[4])
-          end
-        end
+          odb_division_ids << odb_division_id
+      end
+      function_name = ODB_SP_NAME[@performance.factor.fact_descriptor.to_sym]
+      program_names = ''
+      Param.where('factor_id=? and action_id=2', @performance.factor_id).each { |p| 
+        @parameter += (p.param_description.description+': '+p.value+'; ')
+        program_names = p.value if (p.param_description_id == 6 or p.param_description_id == 10)
+      }
+      case @performance.factor.fact_descriptor
+        when 'get_fact_percent_kb_service_using' 
+          cursor = get_cursor odb_connection, get_odb_function(function_name, period.end_date, nil, 'O', program_names)
+          # r[0] => division_id; r[1] => holder_id; r[2] => contract_id; r[3] => cnt_clb; r[4] => cnt_gsm; r[5] => cnt_active
+          get_detailed_objects cursor, @performance.direction.level_id, 6, odb_division_ids, 'SUM', 'SUM'
+#          @total_1 = @total_1+@total_2
+#          @percent = @total_1>0 ? @total_2*100/@total_1 : 0
+              # r[0] => division_id; 
+              # r[1] => amount
+              # r[2] => amount_cb
+              # r[3] => amount_gsm
+              # r[4] => amount_active
+#              acc = 0
+#              cb = 0
+#              reg_acc = {}
+#              reg_srv = {}
+#              facts.clear
+#              while r = cursor.fetch()
+#                code = get_code_s_by_odb_division_id r[0], direction.id
+#                facts[code] = 0 if facts[code].nil?
+#                acc = acc +(r[1] ? r[1]:0)
+#                cb = cb +(r[2] ? r[2]:0)
+#                if not r[1].nil? and (r[1]!=0)
+#                  if (not r[2].nil?) 
+#                    facts[code] = (r[2] ? r[2]:0)*100/r[1]
+#                  end  
+#                  if (direction.level_id == 2) and (r[0].to_i != 1) and (r[0].to_i != 322) # 000 & 019
+#                    reg_id = get_fd_region_id(r[0])
+#                    reg_acc[reg_id] = (reg_acc[reg_id] ? reg_acc[reg_id]:0)+(r[1] ? r[1]:0)
+#                    reg_srv[reg_id] = (reg_srv[reg_id] ? reg_srv[reg_id]:0)+(r[2] ? r[2]:0)
+#                  end
+#                end
+#              end
+#              fact_of_bank = cb*100/acc if (acc != 0)
+#              if direction.level_id == 2
+#                reg_acc.each {|id, value|
+#                  facts_by_regions[id] = 0
+#                  if value != 0
+#                    facts_by_regions[id]=reg_srv[id]*100/value
+#                  end
+#                }
+#              end
+
+
+
+#            when 'get_fact_percent_gsm_service_using' 
+#              program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
+#              query = " 
+#                declare
+#                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+#                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+#                begin "+program_names_to_array(program_names)+
+#                  FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+ 
+#                  period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
+#                end; " 
+#              cursor = get_cursor odb_connect, query
+#              # r[0] => division_id
+#              # r[1] => amount
+#              # r[2] => amount_cb
+#              # r[3] => amount_gsm
+#              # r[4] => amount_active
+#              acc = 0
+#              srv = 0
+#              reg_acc = {}
+#              reg_srv = {}
+#              facts.clear
+#              while r = cursor.fetch()
+#                code = get_code_s_by_odb_division_id r[0], direction.id
+#                facts[code] = 0 if facts[code].nil?
+#                acc = acc +(r[1] ? r[1]:0)
+#                srv = srv +(r[3] ? r[3]:0)
+#                if not r[1].nil? and (r[1]!=0)
+#                  if (not r[3].nil?) 
+#                    facts[code] = (r[3] ? r[3]:0)*100/r[1]
+#                  end  
+#                  if (direction.level_id == 2) and (r[0].to_i != 1) and (r[0].to_i != 322) # 000 & 019
+#                    reg_id = get_fd_region_id(r[0])
+#                    reg_acc[reg_id] = (reg_acc[reg_id] ? reg_acc[reg_id]:0)+(r[1] ? r[1]:0)
+#                    reg_srv[reg_id] = (reg_srv[reg_id] ? reg_srv[reg_id]:0)+(r[3] ? r[3]:0)
+#                  end
+#                end
+#              end
+#              fact_of_bank = srv*100/acc if (acc != 0)
+#              if direction.level_id == 2
+#                reg_acc.each {|id, value|
+#                  facts_by_regions[id] = 0
+#                  if value != 0
+#                    facts_by_regions[id]=reg_srv[id]*100/value
+#                  end
+#                }
+#              end
+
+        when 'get_fact_from_rest', 'get_fact_from_rest_by_program', 'get_fact_problem_pers'
+          cursor = get_cursor odb_connection, get_odb_function(function_name, period.end_date, nil, 'O', program_names)
+          # r[0] => division_id; r[1] => user_id; r[2] => object_id; r[3] => ammount_rest; r[4] => ammount_exp
+          get_detailed_objects cursor, @performance.direction.level_id, 5, odb_division_ids, 'SUM', 'SUM'
+          @total_1 = @total_1+@total_2
+          @percent = @total_1>0 ? @total_2*100/@total_1 : 0
+        when 'get_fact_transfer'
+          cursor = get_cursor odb_connection, get_odb_function(function_name, period.start_date.beginning_of_year, period.end_date, 'O', '')
+          get_detailed_objects cursor, @performance.direction.level_id, 4, odb_division_ids, 'NUM', ''
+          # r[0] => division_id; r[1] => user_id; r[2] => base_action_id; r[3] => amount
+        when 'get_fact_municipal_by_contract'
+          cursor = get_cursor odb_connection, get_odb_function(function_name, period.start_date.beginning_of_year, period.end_date, 'U', '')
+          get_detailed_objects cursor, @performance.direction.level_id, 5, odb_division_ids, 'SUM', 'SUM'
+
+          # r[0] => division_id
+          # r[1] => user_id
+          # r[2] => contract_id 
+          # r[3] => count_total
+          # r[4] => count_flash
+#          curr_code = ''
+#          municipal_count = 0
+#          while r = cursor.fetch()
+#            if r[0] == odb_division_id 
+#              @objects << {:division_name => division_name, :user_id => r[1], :object_id => r[2], :amount_1 => r[3], :amount_2 => r[4]}
+#              @total_1 += r[3]
+#              @total_2 += (r[4] ? r[4] : 0)
+#            end
+#            code = get_code_s_by_odb_division_id r[0], direction.id
+#            if code != curr_code
+#              if curr_code != ''
+#                facts[curr_code] = municipal_count
+#                municipal_count = 0
+#              end
+#              curr_code = code
+#            end
+#            if (r[1] == 23961) or (r[1] == 0)
+#              municipal_count =  municipal_count+r[2]
+#            end
+#            if r[1] == 24991
+#              municipal_count =  municipal_count+ r[3]
+#            end                  
+#          end   
+#          facts[code] = municipal_count         
+  #         case when mp.contract_id in
+  #         (17608,  -- ПКТС
+  #          12205,  -- ЕРЦ
+  #          24991,  -- флэш-киоск
+  #          10990,  -- пополнения моб. операторов
+  #          23961)  -- СДА             
+        when 'get_fact_card_count', 'get_count_term', 'get_fact_depobox'
+          cursor = get_cursor odb_connection, get_odb_function(function_name, period.end_date, nil, 'O', program_names)
+          get_detailed_objects cursor, @performance.direction.level_id, 3, odb_division_ids, 'NUM', ''
+          # r[0] => division_id; r[1] => user_id; r[2] => contract_id
+
       end        
     end
     odb_connection.logoff
@@ -155,7 +298,9 @@ class PerformancesController < ApplicationController
 #      end
 #    }
 #    odb_connection = OCI8.new("kpi", "MVM55010101", "srbank")
-    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
+#    odb_connection = OCI8.new("kpi", "MVM55010101", "ora0-i00.vbr.ua:1521/SRBANK")
+#    odb_connection = OCI8.new("kpi", "MVM55010101", "ora3-i00:1661/SRBANK")
+    odb_connection = OCI8.new("kpi", "MVM55010101", "srbank3")
     case @direction.level_id
       when 4 # all workers MSB
         @workers = Worker.find_by_sql(" select e.id_emp id, e.tabn, e.code_division, 
@@ -583,7 +728,8 @@ class PerformancesController < ApplicationController
   end
    
   def get_odb_division_id fd_division_id
-    return Division.find_by_code(BranchOfBank.find(fd_division_id).code.to_i).id
+    code = BranchOfBank.find(fd_division_id).code.to_i
+    return Division.find_by_code(code == 2 ? 1 : code).id
   end
   
   def find_direction
@@ -645,6 +791,7 @@ class PerformancesController < ApplicationController
         facts_by_regions.clear
         fact_of_bank = 0
         if f.factor_weights.last.weight > 0.00001
+          function_name = ODB_SP_NAME[f.fact_descriptor.to_sym]
           plans.clear
           facts.clear
           code_by_id.each_value{|code|
@@ -926,18 +1073,20 @@ class PerformancesController < ApplicationController
                 end  
               end
             end
-            if f.fact_descriptor == 'get_fact_problem_pers'  
+            if f.fact_descriptor == 'get_fact_problem_pers' 
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
-              query = "
-                declare
-                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                begin "+program_names_to_array(program_names)+
-                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                  period.end_date.to_s+"','yyyy-mm-dd'), 
-                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-                end;"
-              cursor = get_cursor odb_connect, query
+              cursor = get_cursor odb_connect, get_odb_function(function_name, period.end_date, nil, 'D', program_names)
+              
+#              query = "
+#                declare
+#                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+#                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+#                begin "+program_names_to_array(program_names)+
+#                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+#                  period.end_date.to_s+"','yyyy-mm-dd'), 
+#                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+#                end;"
+#              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => ammount_rest
               # r[2] => ammount_exp
@@ -997,16 +1146,17 @@ class PerformancesController < ApplicationController
             end
             if (f.fact_descriptor == 'get_fact_from_rest_by_program') or (f.fact_descriptor == 'get_fact_from_rest')
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
-              query = "
-                declare
-                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                begin "+program_names_to_array(program_names)+
-                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                  period.end_date.to_s+"','yyyy-mm-dd'), 
-                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-                end;"
-              cursor = get_cursor odb_connect, query
+              cursor = get_cursor odb_connect, get_odb_function(function_name, period.end_date, nil, 'D', program_names)
+#              query = "
+#                declare
+#                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+#                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+#                begin "+program_names_to_array(program_names)+
+#                  FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+#                  period.end_date.to_s+"','yyyy-mm-dd'), 
+#                  'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+#                end;"
+#              cursor = get_cursor odb_connect, query
               # r[0] => division_id
               # r[1] => ammount_rest
               # r[2] => ammount_exp
@@ -1038,18 +1188,19 @@ class PerformancesController < ApplicationController
                 facts[credit.code] = credit.fact
               }
               if business == 'K' # subtract factoring
-                query = "
-                  declare
-                    c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                    m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                  begin 
-                    m_macro_table.extend;
-                    m_macro_table(1) := sr_bank.T_STR_ROW('202-001-01');
-                    "+FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
-                    period.end_date.to_s+"','yyyy-mm-dd'), 
-                    'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
-                  end;"
-                cursor = get_cursor odb_connect, query
+                cursor = get_cursor odb_connect, get_odb_function('tst_rest_by_ct_type', period.end_date, nil, 'D', '202-001-01')
+#                query = "
+#                  declare
+#                    c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+#                    m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+#                  begin 
+#                    m_macro_table.extend;
+#                    m_macro_table(1) := sr_bank.T_STR_ROW('202-001-01');
+#                    "+FACT_OWNER+".vbr_kpi.get_rest_by_ct_type(TO_DATE('"+ 
+#                    period.end_date.to_s+"','yyyy-mm-dd'), 
+#                    'CREDIT_DOCUMENT', 'F', m_macro_table, :c_cursor);
+#                  end;"
+#                cursor = get_cursor odb_connect, query
   
                 # r[0] => division_id
                 # r[1] => ammount_rest
@@ -1762,38 +1913,39 @@ class PerformancesController < ApplicationController
                 facts[code] = r[1]
               end
             end
-            if f.fact_descriptor == 'get_fact_percent_accounts_active' 
-              query = "
-                declare
-                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
-                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
-                begin 
-                  m_macro_table.extend;
-                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('KSTG'); "+
-                  FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+
-                  period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
-                end;"
-              cursor = get_cursor odb_connect, query
-
-              # r[0] => division_id
-              # r[1] => amount
-              # r[2] => amount_cb
-              # r[3] => amount_gsm
-              # r[4] => amount_active
-              facts.clear
-              while r = cursor.fetch()
-                code = get_code_s_by_odb_division_id r[0], direction.id
-                if (not r[1].nil?) and (r[1]!=0)
-                  if r[4].nil?
-                    facts[code] = 0
-                  else
-                    facts[code] = r[4]*100/r[1]
-                  end
-                else
-                  facts[code] = 0
-                end
-              end
-            end
+# save this code!
+#            if f.fact_descriptor == 'get_fact_percent_accounts_active' 
+#              query = "
+#                declare
+#                  c_cursor "+FACT_OWNER+".vbr_kpi.common_cursor;
+#                  m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+#                begin 
+#                  m_macro_table.extend;
+#                  m_macro_table(1) := "+FACT_OWNER+".T_STR_ROW('KSTG'); "+
+#                  FACT_OWNER+".vbr_kpi.get_count_tariff(TO_DATE('"+
+#                  period.end_date.to_s+"','yyyy-mm-dd'), m_macro_table, :c_cursor);
+#                end;"
+#              cursor = get_cursor odb_connect, query
+#
+#              # r[0] => division_id
+#              # r[1] => amount
+#              # r[2] => amount_cb
+#              # r[3] => amount_gsm
+#              # r[4] => amount_active
+#              facts.clear
+#              while r = cursor.fetch()
+#                code = get_code_s_by_odb_division_id r[0], direction.id
+#                if (not r[1].nil?) and (r[1]!=0)
+#                  if r[4].nil?
+#                    facts[code] = 0
+#                  else
+#                    facts[code] = r[4]*100/r[1]
+#                  end
+#                else
+#                  facts[code] = 0
+#                end
+#              end
+#            end
             if f.fact_descriptor == 'get_fact_credit_contract_number' 
               program_names = Param.where('factor_id=? and action_id=2 and param_description_id=6', f.id).last.value
               query = "
@@ -2227,6 +2379,62 @@ class PerformancesController < ApplicationController
           save_kpi period.id, r.id, direction.id, curr_block, 0, 0, '', 0, 0, 0, 0, block_kpi
           save_kpi period.id, r.id, direction.id, 0, 0, 0, '', 0, 0, 0, 0, total_kpi
         }
+    end
+  end
+  
+  def get_fields r, n_f
+    worker = ''
+    e = Employee.find_by_sr_user_id(r[1])
+    if not e.nil?
+      w = Worker.find_by_TABN e.tabn
+      if w
+        worker = w.LASTNAME+' '+w.FIRSTNAME+' '+w.SONAME
+      end  
+    end      
+    case n_f
+      when 3
+        return {:division_name => Division.find(r[0]).name, :user => (worker>''? worker:r[1]), :object_id => r[2]}
+      when 4
+        return {:division_name => Division.find(r[0]).name, :user => (worker>''? worker:r[1]), :object_id => r[2], :amount_1 => r[3]}
+      when 5
+        return {:division_name => Division.find(r[0]).name, :user => (worker>''? worker:r[1]), :object_id => r[2], :amount_1 => r[3], :amount_2 => r[4]}
+      when 6
+        return {:division_name => Division.find(r[0]).name, :user => (worker>''? worker:r[1]), :object_id => r[2], :amount_1 => r[3], :amount_2 => r[4], :amount_3 => r[5]}
+    end
+  end  
+
+  def get_odb_function function_name, date_1, date_2, level, program_names
+    d1 = date_1 ? "TO_DATE('"+date_1.to_s+"','yyyy-mm-dd'), " : " "
+    d2 = date_2 ? "TO_DATE('"+date_2.to_s+"','yyyy-mm-dd'), " : " "
+    p = program_names > "" ? program_names_to_array(program_names) : " "
+    m = program_names > "" ? "m_macro_table, " : " "
+    t_d = function_name == 'tst_rest_by_ct_type' ? "'CREDIT_DOCUMENT', " : ""
+#    query = "
+    return "
+      declare
+        c_cursor "+FACT_OWNER+"."+PACKAGE+".common_cursor;
+        m_macro_table "+FACT_OWNER+".t_str_table := "+FACT_OWNER+".t_str_table();
+      begin "+p+FACT_OWNER+"."+PACKAGE+"."+function_name+"("+d1+d2+t_d+
+        "'"+level+"', "+m+" :c_cursor);
+      end;"
+#    ::Rails.logger.info query+"<++++++++++++++++++++++++++++>"  
+#    return query  
+  end
+    
+  def get_detailed_objects cursor, level, num_fields, odb_division_ids, op1, op2
+    while r = cursor.fetch()
+      case level
+        when 1
+          @total_1 = (op1 == 'SUM' ? @total_1+r[3]: @total_1+1) if op1>''
+          @total_2 = (op2 == 'SUM' ? @total_2+r[4]: @total_2+1) if op2>''
+          @objects << get_fields(r, num_fields)
+        when 3
+          if (odb_division_ids.include? r[0])
+            @objects << get_fields(r, num_fields) 
+            @total_1 = (op1 == 'SUM' ? @total_1+r[3]: @total_1+1) if op1>''
+            @total_2 = (op2 == 'SUM' ? @total_2+(r[4] ? r[4]:0): @total_2+1) if op2>''
+          end  
+      end    
     end
   end
 #                RAILS_DEFAULT_LOGGER.info plans.values

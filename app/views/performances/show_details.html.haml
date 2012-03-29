@@ -19,16 +19,26 @@
       %th Отделение
       %th Сотрудник
       %th Объект
-      %th Остатки
-      %th Просрочка
+      - if @objects[0][:amount_1]
+        %th Остатки
+      - if @objects[0][:amount_2]
+        %th Просрочка
+        %th Процент
     - for o in @objects
       %tr
         %td= o[:division_name]
-        %td= o[:user_id]
-        %td= o[:object_id]
-        %td= o[:amount_rest]
-        %td= o[:amount_exp]
+        %td= o[:user]
+        %td{style: 'text-align: right'}= o[:object_id].to_i
+        - if o[:amount_1]
+          %td{style: 'text-align: right'}= number_with_precision(o[:amount_1], :precision => 2, :separator => '.')
+        - if o[:amount_2]
+          %td{style: 'text-align: right'}= number_with_precision(o[:amount_2], :precision => 2, :separator => '.')
+        - if o[:amount_3]
+          %td{style: 'text-align: right'}= number_with_precision(o[:amount_3], :precision => 2, :separator => '.')
     %tr
       %td{:colspan => 3}
-      %td= @total    
+      %td{style: 'text-align: right'}= number_with_precision(@total_1, :precision => 2, :separator => '.')
+      - if o[:amount_2]   
+        %td{style: 'text-align: right'}= number_with_precision(@total_2, :precision => 2, :separator => '.')
+        %td= number_with_precision(@percent, :precision => 3, :separator => '.') 
     

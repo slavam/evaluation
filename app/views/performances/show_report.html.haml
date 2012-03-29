@@ -84,15 +84,30 @@
         - 
         - case p.factor.factor_description.unit.name 
         -  when 'грн.' then 
-          - if current_user and current_user.admin? and (p.factor.fact_descriptor == 'get_fact_from_rest' or p.factor.fact_descriptor == 'get_fact_from_rest_by_program')
+          - if current_user and current_user.admin? and (p.factor.fact_descriptor == 'get_fact_from_rest' or p.factor.fact_descriptor == 'get_fact_problem_pers' or p.factor.fact_descriptor == 'get_fact_from_rest_by_program') 
             %td{style: 'text-align: right'}= link_to number_to_currency(p.fact, :unit => "", :format => "%n %u"), |
               :action => 'show_details', :performance_id => p.id |
           - else
             %td{style: 'text-align: right'}= number_to_currency(p.fact, :unit => "", :format => "%n %u")
-        -   when '%' then  
-          %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 3, :separator => '.')
-        -    else          
-          %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 0, :separator => '.')
+        -  when '%' then  
+          - if current_user and current_user.admin? and (p.factor.fact_descriptor == 'get_fact_problem_pers' | 
+            or p.factor.fact_descriptor == 'get_fact_percent_kb_service_using' | 
+            or p.factor.fact_descriptor == 'get_fact_percent_gsm_service_using') | 
+          -
+            %td{style: 'text-align: right'}= link_to number_with_precision(p.fact, :precision => 3, :separator => '.'), |
+              :action => 'show_details', :performance_id => p.id |
+          - else  
+            %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 3, :separator => '.')
+        -  else          
+          - if current_user and current_user.admin? and (p.factor.fact_descriptor == 'get_fact_transfer' |
+            or p.factor.fact_descriptor == 'get_fact_depobox' |
+            or p.factor.fact_descriptor == 'get_fact_municipal_by_contract' |
+            or p.factor.fact_descriptor == 'get_fact_card_count' or p.factor.fact_descriptor == 'get_count_term') | 
+          -
+            %td{style: 'text-align: right'}= link_to number_with_precision(p.fact, :precision => 0, :separator => '.'), |
+              :action => 'show_details', :performance_id => p.id |
+          - else  
+            %td{style: 'text-align: right'}= number_with_precision(p.fact, :precision => 0, :separator => '.')
         -
         %td{style: 'text-align: right'}= |
           number_with_precision(p.exec_percent, :precision => 3, :separator => '.') |

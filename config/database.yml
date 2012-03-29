@@ -6,7 +6,8 @@ plan_fact:
 
 odb:
   adapter: oracle_enhanced
-  database: ora0-i00.vbr.ua:1521/SRBANK
+  database: ora3-i00:1661/SRBANK
+#  database: ora3-i00.vbr.ua:1661/SRBANK3
 #  database: ora0-i00:1521/SRBANK
   username: kpi
   password: MVM55010101
