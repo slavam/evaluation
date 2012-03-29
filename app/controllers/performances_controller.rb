@@ -1187,6 +1187,7 @@ class PerformancesController < ApplicationController
               PlanDictionary.find_by_sql(query).each {|credit|
                 facts[credit.code] = credit.fact
               }
+              
               if business == 'K' # subtract factoring
                 cursor = get_cursor odb_connect, get_odb_function('tst_rest_by_ct_type', period.end_date, nil, 'D', '202-001-01')
 #                query = "
