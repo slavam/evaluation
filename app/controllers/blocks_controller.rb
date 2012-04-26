@@ -1,6 +1,6 @@
 # coding: utf-8
 class BlocksController < ApplicationController
-#  before_filter :find_block, :only => [:show, :edit, :update, :destroy]
+  before_filter :find_block, :only => :destroy_block
   before_filter :find_direction, :only => [:new_block, :edit_weights]
   before_filter :find_blocks, :only => [:new_block, :edit_weights]
   def index
@@ -105,9 +105,11 @@ class BlocksController < ApplicationController
     end
   end
   
-  def destroy
+  def destroy_block
+    direction_id = @block.direction_id
     @block.destroy
-    redirect_to blocks_path
+    notice_change_weights
+    redirect_to :controller => 'directions', :action => 'show_eigen_blocks', :id => direction_id
   end
   private
   

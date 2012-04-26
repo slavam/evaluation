@@ -78,6 +78,9 @@ class ApplicationController < ActionController::Base
     flash_notice 'destroyed'
   end
 
+  def notice_change_weights
+    flash_notice 'weights_disbalanced'
+  end
   def flash_notice(key)
     flash[:notice] = translate_controller key
   end

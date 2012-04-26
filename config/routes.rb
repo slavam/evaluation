@@ -16,13 +16,13 @@ Evaluation::Application.routes.draw do
   resource :profile
   resources :blocks do
     collection do
-      get :new_block, :edit_weights
+      get :new_block, :edit_weights, :destroy_block
       post :save_weights, :save_updated_weights
     end
   end
   resources :factors do
     collection do
-      get :new_factor, :edit_weights, :edit_descriptor, :add_weights
+      get :new_factor, :edit_weights, :edit_descriptor, :add_weights, :destroy_factor
       post :save_weights, :save_updated_weights, :save_descriptor, :save_factor
     end
   end
@@ -50,7 +50,8 @@ Evaluation::Application.routes.draw do
         :report_print, :get_calc_params, :get_calc_division, 
         :calc_kpi, :show_report, :show_values, :get_calc_worker, :get_report_worker, 
         :show_kpi_by_divisions, :show_final_kpi, :show_final_kpi_for_division,
-        :show_final_kpi_for_direction, :kpi_as_xls, :get_interval, :show_details
+        :show_final_kpi_for_direction, :kpi_as_xls, :get_interval, :show_details,
+        :show_contract_parameters
     end
   end
 

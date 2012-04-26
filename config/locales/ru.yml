@@ -2,6 +2,7 @@ ru:
   flash:
     weight_is_wrong: Сумма весов не равна 1
     weight_is_empty: Вес не задан
+    weights_disbalanced: Проверьте веса!
     kpi_not_ready: KPI еще не расчитаны 
     data_not_ready: Данные для расчета KPI еще не готовы
     require_admin: Only admin user can see this page

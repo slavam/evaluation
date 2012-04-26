@@ -1,7 +1,7 @@
 # coding: utf-8
 class FactorsController < ApplicationController
   before_filter :find_block, :only => [:new_factor, :save_weights, :edit_weights, :save_updated_weights, :save_factor, :add_weights]
-  before_filter :find_factor, :only => [:edit_descriptor, :save_descriptor]
+  before_filter :find_factor, :only => [:edit_descriptor, :save_descriptor, :destroy_factor]
   
   def show
   end
@@ -107,7 +107,7 @@ class FactorsController < ApplicationController
           @factor_weight = FactorWeight.new
           @factor_weight.factor_id = f.id
           @factor_weight.start_date = Time.now
-          @factor_weight.weight = params[:w][f.id.to_s][:weight]
+          @factor_weight.weight = (params[:w][f.id.to_s][:weight].to_s > '0' ? params[:w][f.id.to_s][:weight] : 0)
           @factor_weight.description = params[:w][f.id.to_s][:description]
           if @block.categorization
             @factor_weight.division_category_id = params[:category_id]
@@ -132,10 +132,11 @@ class FactorsController < ApplicationController
     end
   end
   
-  def destroy
+  def destroy_factor
     block_id = @factor.block_id
+    @factor.factor_weights.each {|w| w.destroy}
     @factor.destroy
-    redirect_to :controller => 'directions', :action => 'show_eigen_factors', :id => block_id
+    redirect_to :controller => 'directions', :action => 'show_factors', :id => block_id
   end
  
   private

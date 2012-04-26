@@ -10,6 +10,8 @@
     - for f in @factors
       %tr
         %td= link_to f.factor_description.short_name, :action => :show_articles, :id => f
+        - if f.factor_weights.maximum("weight") == 0
+          %td= link_to 'Удалить', :controller => 'factors', :action => 'destroy_factor', :id => f  
 %br	
 .actions
   

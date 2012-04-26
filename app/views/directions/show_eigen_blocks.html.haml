@@ -7,12 +7,15 @@
       %th Название
       %th Вес
       %th Описание
+      %th
     - for b in @direction.blocks
       %tr
         %td= link_to b.block_description.short_name, :action => 'show_factors', :id => b 
         - bw = b.block_weights.last
         %td= bw.weight
         %td= bw.description
+        - if b.factors.size == 0 
+          %td= link_to "Удалить", :controller => 'blocks', :action => 'destroy_block', :id => b
         - if b.categorization
           %td Веса показателей зависят от категории отделения
 %br	

@@ -1,0 +1,45 @@
+# coding: utf-8
+-@title = "Анализ контракта"
+%h2 Анализ контракта 
+.content
+  %table.data
+    %tr
+      %th Дата начала договора:
+      %td= @contract[:begin_date].to_date
+    %tr
+      %th Дата окончания договора:
+      %td= @contract[:end_date].to_date
+    %tr
+      %th Дата закрытия договора:
+      %td= @contract[:close_date].to_date
+    %tr
+      %th Начальная сумма договора:
+      %td= number_with_precision(@contract[:begin_amount], :precision => 2, :separator => '.')
+    %tr
+      %th Отделение:
+      %td= @contract[:division]
+    %tr
+      %th Владелец договора:
+      %td= @contract[:holder]
+    %tr
+      %th Код валюты договора:
+      %td= @contract[:c_s_name]
+    %tr
+      %th Код контрагента:
+      %td= @contract[:customer_code]
+    %tr
+      %th Наименование контрагента:
+      %td= @contract[:customer_name]
+    %tr
+      %th Статус договора:
+      %td= @contract[:status]
+    %tr
+      %th Номер договора:
+      %td= @contract[:doc_no]
+    %tr
+      %th Код типа контракта:
+      %td= @contract[:ct_code]
+    %tr
+      %th Наименование типа контракта:
+      %td= @contract[:ct_name]
+		
