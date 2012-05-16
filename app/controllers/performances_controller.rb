@@ -513,7 +513,8 @@ class PerformancesController < ApplicationController
     sheet1.column(2).default_format = format
     @performances.each {|p|
       if p.block.categorization
-        category_id = p.division.division_branch_id
+#        category_id = p.division.division_branch_id
+        category_id = p.division.category_histories.where("modify_date <= to_date('"+@period.start_date.to_s+"','yyyy-mm-dd')").order(:modify_date).last.id_division_branch
         category_id = 3 if (category_id == 1) or (category_id == 2)
         category_id = 4 if (category_id == 5) or (category_id == 6)
       end  
@@ -1867,9 +1868,16 @@ class PerformancesController < ApplicationController
               facts.clear
               facts_by_regions.clear
               cnt_div_by_dir = {}
-              s = f.id == 274 ? '' : ' and division_branch_id in (3, 4) ' # для ИБ не учитываем категорию отделения ШИА 25.04.12
-              BranchOfBank.find_by_sql("select parent_id, count(*) cnt from "+FIN_OWNER+
-                ".division where open_date is not null "+s+" and parent_id > 1 group by parent_id").each {|rd|
+              query = f.id == 274 ? "select parent_id, count(*) cnt from "+FIN_OWNER+
+                ".division where open_date is not null and parent_id > 1 group by parent_id" :
+                "select parent_id, count(*) cnt from "+FIN_OWNER+".division d
+                  join "+FIN_OWNER+".division_branch_hist dbh on d.id = dbh.id_division and dbh.id_division_branch in (3, 4) and 
+                  dbh.modify_date in (select max(dbh.modify_date) as modify_date
+                  from "+FIN_OWNER+".division_branch_hist dbh 
+                  where dbh.modify_date<=to_date('"+period.start_date.to_s+"','yyyy-mm-dd') group by dbh.id_division)
+                  where open_date is not null and parent_id > 1 group by parent_id"
+#              s = f.id == 274 ? '' : ' and division_branch_id in (3, 4) ' # для ИБ не учитываем категорию отделения ШИА 25.04.12
+              BranchOfBank.find_by_sql(query).each {|rd|
                 cnt_div_by_dir[rd.parent_id] = rd.cnt
               }
  
@@ -1996,7 +2004,8 @@ class PerformancesController < ApplicationController
             fact = 0 if fact == -1
           end
           if factor.block.categorization
-            category_id = BranchOfBank.find(code_by_id.key(code)).division_branch_id
+#            category_id = BranchOfBank.find(code_by_id.key(code)).division_branch_id
+            category_id = BranchOfBank.find(code_by_id.key(code)).category_histories.order(:modify_date).last.id_division_branch
             category_id = 3 if (category_id == 1) or (category_id == 2)
             category_id = 4 if (category_id == 5) or (category_id == 6)
             fw = FactorWeight.where("factor_id=? and division_category_id=?",factor_id, category_id).order(:id).last.weight

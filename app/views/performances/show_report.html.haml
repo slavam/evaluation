@@ -60,7 +60,8 @@
         %td= ''
         %td= p.factor.factor_description.short_name+(p.factor.factor_description.unit_id != 4 ? ' ('+p.factor.factor_description.unit.name+')':'')
         - if p.block.categorization
-          - category_id = p.division.division_branch_id
+          -# category_id = p.division.division_branch_id
+          - category_id = p.division.category_histories.where("modify_date <= to_date('"+@performances[0].period.start_date.to_s+"','yyyy-mm-dd')").order(:modify_date).last.id_division_branch
           - category_id = 3 if (category_id == 1) or (category_id == 2)
           - category_id = 4 if (category_id == 5) or (category_id == 6)
           %td{style: 'text-align: right'}= number_to_percentage(p.factor.factor_weights.where("division_category_id=?",category_id).last.weight*100, :precision => 0)
